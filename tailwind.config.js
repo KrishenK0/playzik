@@ -1,7 +1,7 @@
 const colors = require('tailwindcss/colors')
 
 module.exports = {
-  // mode: 'jit',
+  mode: 'jit',
   prefix: 'tw-',
   content: [
     './src/**/*.{html, ejs}',
@@ -19,18 +19,18 @@ module.exports = {
   },
   variants: {},
   plugins: [
-    // require("@tailwindcss/typography"),
-    // require("autoprefixer"),
+    require("@tailwindcss/typography"),
+    require("autoprefixer"),
     require("daisyui"),
   ],
-  // daisyui: {
-  //   styled: true,
-  //   themes: true,
-  //   base: true,
-  //   utils: true,
-  //   logs: true,
-  //   rtl: false,
-  //   prefix: "",
-  //   darkTheme: "black",
-  // },
+  daisyui: {
+    styled: true,
+    themes: true,
+    base: true,
+    utils: true,
+    logs: true,
+    rtl: false,
+    prefix: "",
+    darkTheme: "black",
+  },
 }

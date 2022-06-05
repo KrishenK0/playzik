@@ -22,9 +22,6 @@ app.set('view engine', 'ejs');
 
 app.use(cors());
 app.use(express.static(path.join(__dirname, 'public')));
-app.use('/css', express.static(path.join(__dirname, 'public/css')));
-app.use('/js', express.static(path.join(__dirname, 'public/js')));
-app.use('/img', express.static(path.join(__dirname, 'public/img')));
 
 // Websocket
 wss.on('connection', function connection(ws) {

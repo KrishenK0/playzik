@@ -4,7 +4,7 @@ module.exports = {
   mode: 'jit',
   prefix: 'tw-',
   content: [
-    './src/**/*.{html, ejs}',
+    './views/**/*.{html, ejs}',
     './public/js/*.js'
   ],
   darkMode: 'media', // or 'class' or false

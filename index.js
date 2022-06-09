@@ -3,9 +3,9 @@ const ws = require('ws');
 const server = require('./server');
 const path = require('path');
 
-// try {
-//   require('electron-reloader')(module)
-// } catch (_) { }
+try {
+  require('electron-reloader')(module)
+} catch (_) { }
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require('electron-squirrel-startup')) {
@@ -27,12 +27,12 @@ const createWindow = () => {
   // and load the index.html of the app.
   mainWindow.removeMenu()
   mainWindow.loadFile(path.join(__dirname, 'index.html'));
-  mainWindow.loadURL(`http://localhost:8080/`);
+  mainWindow.loadURL(`http://localhost:8080/search`);
 
   // Open the DevTools.
   // mainWindow.webContents.openDevTools();
   mainWindow.on('closed', function () {
-    mainWindow = null
+    //mainWindow = null
   })
 };
 

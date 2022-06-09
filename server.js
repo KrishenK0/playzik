@@ -1,11 +1,14 @@
+const { env } = require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const index = require('./routes/index');
 const cors = require('cors');
-const fs = require('fs');
+const cookieParser = require("cookie-parser");
+const sessions = require('express-session');
 
 const app = express();
 // DEBUG: set a ssl certificat (https)
+// const fs = require('fs');
 // const options = {
 //     key: fs.readFileSync('./extra/key.pem'),
 //     cert: fs.readFileSync('./extra/cert.pem')
@@ -20,8 +23,22 @@ const wss = new WebSocket.Server({ server: server });
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
 
-app.use(cors());
+
 app.use(express.static(path.join(__dirname, 'public')));
+// parsing incoming data
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Middleware
+app.use(cors());
+app.use(cookieParser());
+app.use(sessions({
+    secret: process.env.SESSION_SECRET,
+    saveUninitialized: true,
+    cookie: { maxAge: 1000 * 60 * 60 * 24 }, // 1 day
+    resave: false
+}));
+
 
 // Websocket
 wss.on('connection', function connection(ws) {
@@ -34,14 +51,12 @@ wss.on('connection', function connection(ws) {
 
         // BROADCAST (ignore client sender)
         wss.clients.forEach(function each(client) {
-            if(client !== ws && client.readyState === WebSocket.OPEN) {
+            if (client !== ws && client.readyState === WebSocket.OPEN) {
                 client.send(`[BROADCAST] ${client.name} send "${message}" to the server`);
             }
         })
     });
 });
-
-
 
 
 // Route
@@ -77,5 +92,6 @@ app.use(function (err, req, res, next) {
         error: {}
     });
 });
+
 
 server.listen(8080, () => console.log('Listening on port : 8080'));

@@ -3,14 +3,16 @@ const tmp = require('tmp');
 const fs = require('fs');
 const ytdl = require('ytdl-core');
 let express = require('express');
-const { PassThrough } = require('stream');
 let router = express.Router();
 
 
 router.get('/', (req, res) => {
-    res.render('index');
+    res.render('index', { session: req.session });
 });
 
+router.get('/search', (req, res) => {
+    res.render('search');
+});
 
 
 router.get('/music/:id', (req, res) => {
@@ -56,6 +58,135 @@ router.get('/music/:id', (req, res) => {
             res.status(404).send(`404 - ${err.message}`);
         });
 
+    }
+});
+
+router.get('/logout', (req, res) => {
+    req.session.destroy();
+    res.redirect('/');
+});
+
+router.get('/login', (req, res) => {
+    res.render('login');
+});
+
+router.get('/login/youtube', (req, res) => {
+    var { google } = require('googleapis');
+    var OAuth2 = google.auth.OAuth2;
+
+    // If modifying these scopes, delete your previously saved credentials
+    // at ~/.credentials/youtube-nodejs-quickstart.json
+    var SCOPES = ['https://www.googleapis.com/auth/youtube.readonly'];
+    var TOKEN_DIR = './.credentials/';
+    var TOKEN_PATH = TOKEN_DIR + 'youtube-cred.json';
+
+
+    // Load client secrets from a local file.
+    fs.readFile(TOKEN_DIR + 'client_secret.json', function processClientSecrets(err, content) {
+        if (err) {
+            fs.log('Error loading client secret file: ' + err);
+            return;
+        }
+        // Authorize a client with the loaded credentials, then call the YouTube API.
+        authorize(JSON.parse(content), getChannel);
+    });
+
+
+
+    /**
+     * Create an OAuth2 client with the given credentials, and then execute the
+     * given callback function.
+     *
+     * @param {Object} credentials The authorization client credentials.
+     * @param {function} callback The callback to call with the authorized client.
+     */
+    function authorize(credentials, callback) {
+        var clientSecret = credentials.web.client_secret;
+        var clientId = credentials.web.client_id;
+        var redirectUrl = credentials.web.redirect_uris[0];
+        var oauth2Client = new OAuth2(clientId, clientSecret, redirectUrl);
+
+        // Check if we have previously stored a token.
+        if (req.query.code) {
+            oauth2Client.getToken(req.query.code, function (err, token) {
+                if (err) {
+                    console.log('Error while trying to retrieve access token', err);
+                    req.redirect('/login');
+                    return;
+                }
+                oauth2Client.credentials = token;
+                storeToken(token);
+                res.redirect('/');
+            });
+        } else {
+
+            if (req.session.ytoken == undefined) {
+                getNewToken(oauth2Client, callback);
+            } else {
+                oauth2Client.credentials = req.session.ytoken;
+                callback(oauth2Client);
+            }
+
+        }
+    }
+
+    /**
+     * Get and store new token after prompting for user authorization, and then
+     * execute the given callback with the authorized OAuth2 client.
+     *
+     * @param {google.auth.OAuth2} oauth2Client The OAuth2 client to get token for.
+     * @param {getEventsCallback} callback The callback to call with the authorized
+     *     client.
+     */
+    function getNewToken(oauth2Client, callback) {
+        var authUrl = oauth2Client.generateAuthUrl({
+            access_type: 'offline',
+            scope: SCOPES
+        });
+        // console.log('Authorize this app by visiting this url: ', authUrl);
+        res.redirect(authUrl);
+    }
+
+    /**
+     * Store token to disk be used in later program executions.
+     *
+     * @param {Object} token The token to store to disk.
+     */
+    function storeToken(token) {
+        console.log(token);
+        req.session.ytoken = token;
+        console.log('Token stored to the session');
+        console.log(req.session);
+        if (req.session.ytoken.access_token == undefined) throw new Error('Token is not stored');
+    }
+
+    /**
+     * Lists the names and IDs of up to 10 files.
+     *
+     * @param {google.auth.OAuth2} auth An authorized OAuth2 client.
+     */
+    function getChannel(auth) {
+        var service = google.youtube('v3');
+        service.channels.list({
+            auth: auth,
+            part: 'snippet,contentDetails,statistics',
+            forUsername: 'GoogleDevelopers'
+        }, function (err, response) {
+            if (err) {
+                console.log('The API returned an error: ' + err);
+                return;
+            }
+            var channels = response.data.items;
+            if (channels.length == 0) {
+                console.log('No channel found.');
+            } else {
+                console.log('This channel\'s ID is %s. Its title is \'%s\', and ' +
+                    'it has %s views.',
+                    channels[0].id,
+                    channels[0].snippet.title,
+                    channels[0].statistics.viewCount);
+            }
+        });
     }
 });
 

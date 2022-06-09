@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/img/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/img/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/img/favicon-16x16.png">
+    <link rel="manifest" href="/web.manifest">
+    <title>Hello World!</title>
+    <link rel="stylesheet" href="/css/style.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- <script defer src="/js/render.js"></script> -->
+</head>
+
+<body class="font-Poppins">
+    <!-- Search -->
+    <section class="mt-12">
+        <div class="container">
+            <div class="form-control w-full">
+                <div class="input-group">
+                    <input type="text" placeholder="Search…"
+                        class="input input-ghost input-bordered flex-1 focus:outline-none" />
+                    <button class="btn btn-square">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <% if(locals.results) { %>
+
+            <!-- Best Result -->
+            <!-- Heading -->
+            <div class="mt-4 flex flex-row sm:w-3/4 mx-auto px-2 mb-4">
+                <h1 class="text-md text-lg text-gray-100 flex-1">Best Result</h1>
+            </div>
+            <!-- Content -->
+            <div class="flex flex-col sm:w-3/4 mx-auto px-2 font-semibold">
+                <div class="py-3 w-full flex flex-row items-center text-gray-100">
+                    <div class="flex-1 flex flex-row items-center gap-x-4">
+                        <img class="h-12 w-12" src="/img/android-chrome-512x512.png" alt="">
+                        <div class="text-sm">
+                            <h4>Just like you</h4>
+                            <span class="text-gray-400">Titre • NF • CLOUDS (THE MIXTAPE) • 4:12</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Template (Category) -->
+            <!-- Heading -->
+            <div class="mt-4 flex flex-row sm:w-3/4 mx-auto px-2 mb-4">
+                <h1 class="text-md text-lg text-gray-100 flex-1">Category</h1>
+            </div>
+            <!-- Content -->
+            <div class="flex flex-col sm:w-3/4 mx-auto px-2 font-semibold">
+                <div class="py-3 w-full flex flex-row items-center text-gray-100 border-b border-slate-600 last:border-b-0">
+                    <div class="flex-1 flex flex-row items-center gap-x-4">
+                        <img class="h-12 w-12" src="/img/android-chrome-512x512.png" alt="">
+                        <div class="text-sm">
+                            <h4>Just like you</h4>
+                            <span class="text-gray-400">Titre • NF • CLOUDS (THE MIXTAPE) • 4:12</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="py-3 w-full flex flex-row items-center text-gray-100 border-b border-slate-600 last:border-b-0">
+                    <div class="flex-1 flex flex-row items-center gap-x-4">
+                        <img class="h-12 w-12" src="/img/android-chrome-512x512.png" alt="">
+                        <div class="text-sm">
+                            <h4>Just like you</h4>
+                            <span class="text-gray-400">Titre • NF • CLOUDS (THE MIXTAPE) • 4:12</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <% } else { %> 
+            
+            <!-- Recent Searches -->
+            <!-- Heading -->
+            <div class="mt-4 flex flex-row sm:w-3/4 mx-auto px-2 mb-4">
+                <h1 class="text-md text-lg text-gray-100 flex-1">Recent Searches</h1>
+                <a class="font-bold text-secondary justify-end">Clear all</a>
+            </div>
+            <!-- Content -->
+            <div class="flex flex-col sm:w-3/4 mx-auto px-2 font-semibold">
+                <div class="py-2 w-full flex flex-row items-center text-gray-400">
+                    <span class="flex-1 text-sm">Just like you</span>
+                    <i class="fa fa-times justify-end"></i>
+                </div>
+                <div class="py-2 w-full flex flex-row items-center text-gray-400">
+                    <span class="flex-1 text-sm">Just like you</span>
+                    <i class="fa fa-times justify-end"></i>
+                </div>
+                <div class="py-2 w-full flex flex-row items-center text-gray-400">
+                    <span class="flex-1 text-sm">Just like you</span>
+                    <i class="fa fa-times justify-end"></i>
+                </div>
+            </div>
+            <!-- Trending Search -->
+            <!-- Heading -->
+            <div class="mt-4 flex flex-row sm:w-3/4 mx-auto px-2 mb-4">
+                <h1 class="text-md text-lg text-gray-100 flex-1">Trending Search</h1>
+                <a class="font-bold text-secondary justify-end">See all</a>
+            </div>
+            <!-- Content -->
+            <div class="flex flex-col sm:w-3/4 mx-auto px-2 font-semibold">
+                <div class="py-3 w-full flex flex-row items-center text-gray-100 border-b border-slate-600 last:border-b-0">
+                    <div class="flex-1 flex flex-row items-center gap-x-4">
+                        <img class="h-12 w-12" src="/img/android-chrome-512x512.png" alt="">
+                        <div class="text-sm">
+                            <h4>Just like you</h4>
+                            <span class="text-gray-400">NF</span>
+                        </div>
+                    </div>
+                    <i class="fa fa-plus justify-end text-secondary"></i>
+                </div>
+                <div class="py-3 w-full flex flex-row items-center text-gray-100 border-b border-slate-600 last:border-b-0">
+                    <div class="flex-1 flex flex-row items-center gap-x-4">
+                        <img class="h-12 w-12" src="/img/android-chrome-512x512.png" alt="">
+                        <div class="text-sm">
+                            <h4>Just like you</h4>
+                            <span class="text-gray-400">NF</span>
+                        </div>
+                    </div>
+                    <i class="fa fa-plus justify-end text-secondary"></i>
+                </div>
+            </div>
+            <% } %> 
+        </div>
+    </section>
+
+
+    <!-- <footer class="footer p-10 bg-neutral text-neutral-content fixed bottom-0">
+        <div>
+            <img class="h-12 w-12" src="/img/apple-touch-icon.png" alt="">
+            <p>ACME Industries Ltd.<br>Providing reliable tech since 1992</p>
+        </div>
+        <div>
+            <span class="footer-title">Social</span>
+            <div class="grid grid-flow-col gap-4">
+                <a><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                        class="fill-current">
+                        <path
+                            d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616-.054 2.281 1.581 4.415 3.949 4.89-.693.188-1.452.232-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z">
+                        </path>
+                    </svg></a>
+                <a><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                        class="fill-current">
+                        <path
+                            d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z">
+                        </path>
+                    </svg></a>
+                <a><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                        class="fill-current">
+                        <path
+                            d="M9 8h-3v4h3v12h5v-12h3.642l.358-4h-4v-1.667c0-.955.192-1.333 1.115-1.333h2.885v-5h-3.808c-3.596 0-5.192 1.583-5.192 4.615v3.385z">
+                        </path>
+                    </svg></a>
+            </div>
+        </div>
+    </footer> -->
+
+    <!-- <audio controls preload id="audio" style="width:100%" volume="0.5">
+    <source src="http://localhost:8080/music/9_gkpYORQLU" type="audio/ogg" />
+    <source src="http://localhost:8080/music/9_gkpYORQLU" type="audio/webm" />
+  </audio> -->
+
+    <!-- <script src="/js/client.js"></script> -->
+</body>
+
+</html>

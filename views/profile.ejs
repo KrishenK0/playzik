@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/img/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/img/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/img/favicon-16x16.png">
+    <link rel="manifest" href="/web.manifest">
+    <title>Hello World!</title>
+    <link rel="stylesheet" href="/css/style.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- <script defer src="/js/render.js"></script> -->
+</head>
+
+<body class="font-Poppins min-h-screen overflow-hidden">
+
+    <header class="py-4 text-2xl">
+        <div class="container flex justify-between items-center">
+            <h1 class="text-xl">My profile</h1>
+            <a href="" class="text-sm text-secondary">Edit</a>
+        </div>
+    </header>
+
+    <!-- Profile -->
+    <section class="flex justify-center items-center">
+        <div class="flex flex-col py-12 text-center">
+            <img class="m-auto h-16 w-16 mb-4 shadow-2xl rounded-full" src="/img/apple-touch-icon.png" alt="">
+            <h4>KrishenK</h4>
+            <span class="text-sm text-gray-600">Youtube / Spotify</span>
+        </div>
+    </section>
+
+    <!-- Stats -->
+    <section class="min-h-screen flex flex-col border-t bg-base-200">
+        <!-- Follower -->
+        <div class="w-full flex items-center p-4">
+            <div class="flex items-center flex-1">
+                <ion-icon class="mr-4" name="person-add-outline"></ion-icon>
+                <h4>Follower</h4>
+            </div>
+            <ion-icon name="ellipsis-horizontal-outline" class=""></ion-icon>
+        </div>
+        <!-- Subscribe -->
+        <div class="w-full flex items-center p-4">
+            <div class="flex items-center flex-1">
+                <ion-icon class="mr-4" name="person-outline"></ion-icon>
+                <h4>Subscribe</h4>
+            </div>
+            <ion-icon name="ellipsis-horizontal-outline" class=""></ion-icon>
+        </div>
+        <!-- My collection -->
+        <div class="w-full flex items-center p-4">
+            <div class="flex items-center flex-1">
+                <ion-icon class="mr-4" name="heart-outline"></ion-icon>
+                <h4>My collection</h4>
+            </div>
+            <ion-icon name="ellipsis-horizontal-outline" class=""></ion-icon>
+        </div>
+        <!-- Recently played -->
+        <div class="w-full flex items-center p-4">
+            <div class="flex items-center flex-1">
+                <ion-icon class="mr-4" name="time-outline"></ion-icon>
+                <h4>Recently played</h4>
+            </div>
+            <ion-icon name="ellipsis-horizontal-outline" class=""></ion-icon>
+        </div>
+        <!-- Playlist -->
+        <div class="w-full flex items-center p-4">
+            <div class="flex items-center flex-1">
+                <ion-icon class="mr-4" name="musical-notes-outline"></ion-icon>
+                <h4>Playlist</h4>
+            </div>
+            <ion-icon name="ellipsis-horizontal-outline" class=""></ion-icon>
+        </div>
+    </section>
+
+    <footer class="fixed bottom-0 w-full bg-base-200 py-4 text-2xl flex justify-between items-center">
+        <div class="container flex justify-between items-center">
+            <a class="active:scale-90 transition" href="/home"><ion-icon name="home-outline"></ion-icon></a>
+            <a class="active:scale-90 transition" href="/search"><ion-icon name="search-outline"></ion-icon></a>
+            <a class="active:scale-90 transition text-secondary" href="/profile"><ion-icon name="person-outline"></ion-icon></a>
+        </div>
+    </footer>
+
+    <!-- <audio controls preload id="audio" style="width:100%" volume="0.5">
+    <source src="http://localhost:8080/music/9_gkpYORQLU" type="audio/ogg" />
+    <source src="http://localhost:8080/music/9_gkpYORQLU" type="audio/webm" />
+  </audio> -->
+
+    <!-- <script src="/js/client.js"></script> -->
+    <script type="module" src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.esm.js"></script>
+    <script nomodule src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.js"></script>
+</body>
+
+</html>

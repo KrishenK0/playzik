@@ -11,32 +11,73 @@
   <link rel="stylesheet" href="/css/style.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <!-- <script defer src="/js/render.js"></script> -->
+  <script defer src="/js/render.js"></script>
 </head>
 
-<body class="font-Poppins">
+<body class="font-Poppins max-h-screen overflow-hidden">
 
-  <header class="py-4">
+  <header class="py-4 text-2xl">
     <div class="container flex justify-between">
-      <a href=""><i class="fa-solid fa-chevron-left"></i></a>
-      <a href=""><i class="fa-solid fa-ellipsis"></i></a>
+      <a href=""><ion-icon class="icon-btn" name="chevron-back-outline"></ion-icon></i></a>
+      <a href=""><ion-icon class="icon-btn" name="ellipsis-horizontal-outline"></ion-icon></i></a>
     </div>
   </header>
 
   <!-- Player -->
-  <section class="h-screen">
-    <div class="flex flex-col justify-center items-center py-12">
-      <img class="mask mask-circle h-52 w-52 mb-3" src="/img/apple-touch-icon.png" alt="">
+  <section class="flex flex-col justify-center items-center">
+    <div class="py-12 text-center">
+      <img class="h-52 w-52 mb-4 shadow-2xl border-4 rounded-full" src="/img/apple-touch-icon.png" alt="">
       <h4>Just Like You</h4>
       <span class="text-sm text-gray-600">NF</span>
     </div>
-    <div class="flex">
-      <button type="button"></button>
-      <button type="button"></button>
-      <button type="button"></button>
-      <button type="button"></button>
+    <div class="flex justify-between items-center text-2xl mb-12 w-11/12">
+      <button type="button" class="icon-btn"><ion-icon name="share-social-outline"></ion-icon></button>
+      <button type="button" class="icon-btn"><ion-icon name="add-outline"></ion-icon></button>
+      <button type="button" class="icon-btn"><ion-icon name="arrow-down-outline"></ion-icon></button>
+      <button type="button" class="icon-btn"><ion-icon name="heart-outline"></ion-icon></button>
+    </div>
+    <div class="flex justify-between items-center gap-x-2 w-11/12">
+      <span>1.24</span>
+      <div class="w-5/6 h-1 bg-primary"></div>
+      <span>2.42</span>
+    </div>
+    <div class="flex justify-between items-center py-4 text-2xl w-11/12">
+      <ion-icon class="icon-btn" name="repeat-outline"></ion-icon>
+      <ion-icon class="icon-btn text-secondary" name="play-skip-back-outline"></ion-icon>
+      <ion-icon class="icon-btn text-secondary text-6xl" name="play-circle-outline"></ion-icon>
+      <ion-icon class="icon-btn text-secondary" name="play-skip-forward-outline"></ion-icon>
+      <ion-icon class="icon-btn" name="shuffle-outline"></ion-icon>
     </div>
   </section>
+
+  <!-- Playlist -->
+  <footer id="playlist">
+    <div class="absolute bottom-0 w-full z-10 bg-base-200 rounded-t-lg h-22">
+      <!-- Heading -->
+      <header class="flex basis-auto items-center py-5 px-4 text-center text-base">
+        <div class="flex justify-center items-center flex-1 px-1"><h4 class="flex-1">Next Songs</h4></div>
+        <div class="flex justify-center items-center flex-1 px-1"><h4 class="flex-1">Lyrics</h4></div>
+        <div class="flex justify-center items-center flex-1 px-1"><h4 class="flex-1">Related</h4></div>
+      </header>
+      <!-- Content -->
+      <div class="relative h-full overflow-y-scroll">
+        <div class="absolute top-0 w-full flex flex-col text-gray-100 ">
+          <!-- Songs -->
+          <div class="p-4 flex-1 flex flex-row items-center py-1 border-b border-b-base-300 last:border-b-0 hover:bg-base-300">
+              <div class="flex flex-1 gap-x-4 items-center">
+                <img class="h-12 w-12" src="/img/android-chrome-512x512.png" alt="">
+                <div class="text-sm">
+                    <h4>Just like you</h4>
+                    <span class="text-gray-400">NF • 4:12</span>
+                </div>
+              </div>
+              <ion-icon class="w-6 icon-btn" name="ellipsis-horizontal-outline"></ion-icon>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="hover-background" class="absolute top-0 h-screen w-screen"></div>
+  </foot>
 
   <!-- <audio controls preload id="audio" style="width:100%" volume="0.5">
     <source src="http://localhost:8080/music/9_gkpYORQLU" type="audio/ogg" />
@@ -44,6 +85,8 @@
   </audio> -->
 
   <!-- <script src="/js/client.js"></script> -->
+  <script type="module" src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.esm.js"></script>
+  <script nomodule src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.js"></script>
 </body>
 
 </html>

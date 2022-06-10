@@ -10,13 +10,21 @@ router.get('/', (req, res) => {
     res.render('index', { session: req.session });
 });
 
+router.get('/home', (req, res) => {
+    res.render('home');
+});
+
 router.get('/search', (req, res) => {
     res.render('search');
 });
 
 router.get('/player', (req, res) => {
     res.render('player');
-})
+});
+
+router.get('/profile', (req, res) => {
+    res.render('profile');
+});
 
 router.get('/music/:id', (req, res) => {
 

@@ -14,6 +14,9 @@ router.get('/search', (req, res) => {
     res.render('search');
 });
 
+router.get('/player', (req, res) => {
+    res.render('player');
+})
 
 router.get('/music/:id', (req, res) => {
 
@@ -84,7 +87,7 @@ router.get('/login/youtube', (req, res) => {
     // Load client secrets from a local file.
     fs.readFile(TOKEN_DIR + 'client_secret.json', function processClientSecrets(err, content) {
         if (err) {
-            fs.log('Error loading client secret file: ' + err);
+            console.log('Error loading client secret file: ' + err);
             return;
         }
         // Authorize a client with the loaded credentials, then call the YouTube API.

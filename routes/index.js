@@ -7,24 +7,38 @@ let router = express.Router();
 
 
 router.get('/', (req, res) => {
-    res.render('index', { session: req.session });
-});
-
-router.get('/home', (req, res) => {
-    res.render('home');
+    res.render('template');
+    // res.render('index', { session: req.session });
 });
 
 router.get('/search', (req, res) => {
-    res.render('search');
+    res.render('template', { template: 'search' });
 });
 
 router.get('/player', (req, res) => {
-    res.render('player');
+    res.render('template', { template: 'player' });
 });
 
 router.get('/profile', (req, res) => {
-    res.render('profile');
+    res.render('template', { template: 'profile' });
 });
+
+
+
+
+router.get('/api/music/:id', (req, res) => {
+    if (req.params.id && ytdl.validateID(req.params.id)) {
+        ytdl.getInfo(req.params.id, { quality: 'highestaudio' }).then(info => {
+            res.json(info.videoDetails);
+        });
+    }
+})
+
+router.get('/api/:page', (req, res) => {
+    res.status(200);
+    res.render('pages/' + req.params.page);
+})
+
 
 router.get('/music/:id', (req, res) => {
 

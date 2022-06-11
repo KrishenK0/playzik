@@ -5,6 +5,7 @@ const index = require('./routes/index');
 const cors = require('cors');
 const cookieParser = require("cookie-parser");
 const sessions = require('express-session');
+const ytdl = require('ytdl-core');
 
 const app = express();
 // DEBUG: set a ssl certificat (https)
@@ -16,8 +17,8 @@ const app = express();
 // const server = require('https').createServer(option, app);
 const server = require('http').createServer(app);
 
-const WebSocket = require('ws');
-const wss = new WebSocket.Server({ server: server });
+const { Server } = require('socket.io');
+const io = new Server(server);
 
 // view engine
 app.set('views', path.join(__dirname, 'views'));
@@ -41,21 +42,18 @@ app.use(sessions({
 
 
 // Websocket
-wss.on('connection', function connection(ws) {
-    console.log('[+] client connection.');
-    ws.send('Welcome new client!');
+// io.on('connection', (socket) => {
+//     console.log('[+] Connection');
 
-    ws.on('message', function incoming(message) {
-        console.log('Received: %s', message);
-        //ws.send('Message received : ' + message);
+//     socket.on('disconnect', () => {
+//         console.log('[-] Connection');
+//     });
 
-        // BROADCAST (ignore client sender)
-        wss.clients.forEach(function each(client) {
-            if (client !== ws && client.readyState === WebSocket.OPEN) {
-                client.send(`[BROADCAST] ${client.name} send "${message}" to the server`);
-            }
-        })
-    });
+// });
+
+io.on('connection', (socket) => {
+    console.log('[+] Connection');
+    socket.emit('start', { hello: 'worold' });
 });
 
 

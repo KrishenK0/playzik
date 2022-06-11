@@ -1,0 +1,119 @@
+<!-- Search -->
+<section class="mt-12">
+    <div class="container">
+        <div class="form-control w-full">
+            <div class="input-group">
+                <input type="text" placeholder="Search…"
+                    class="input input-ghost input-bordered flex-1 focus:outline-none" />
+                <button class="btn btn-square">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <% if(locals.results) { %>
+
+        <!-- Best Result -->
+        <!-- Heading -->
+        <div class="mt-4 flex flex-row sm:w-3/4 mx-auto px-2 mb-4">
+            <h1 class="text-md text-lg text-gray-100 flex-1">Best Result</h1>
+        </div>
+        <!-- Content -->
+        <div class="flex flex-col sm:w-3/4 mx-auto px-2 font-semibold">
+            <div class="py-3 w-full flex flex-row items-center text-gray-100">
+                <div class="flex-1 flex flex-row items-center gap-x-4">
+                    <img class="h-12 w-12" src="/img/android-chrome-512x512.png" alt="">
+                    <div class="text-sm">
+                        <h4>Just like you</h4>
+                        <span class="text-gray-400">Titre • NF • CLOUDS (THE MIXTAPE) • 4:12</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Template (Category) -->
+        <!-- Heading -->
+        <div class="mt-4 flex flex-row sm:w-3/4 mx-auto px-2 mb-4">
+            <h1 class="text-md text-lg text-gray-100 flex-1">Category</h1>
+        </div>
+        <!-- Content -->
+        <div class="flex flex-col sm:w-3/4 mx-auto px-2 font-semibold">
+            <div class="py-3 w-full flex flex-row items-center text-gray-100 border-b border-slate-600 last:border-b-0">
+                <div class="flex-1 flex flex-row items-center gap-x-4">
+                    <img class="h-12 w-12" src="/img/android-chrome-512x512.png" alt="">
+                    <div class="text-sm">
+                        <h4>Just like you</h4>
+                        <span class="text-gray-400">Titre • NF • CLOUDS (THE MIXTAPE) • 4:12</span>
+                    </div>
+                </div>
+            </div>
+            <div class="py-3 w-full flex flex-row items-center text-gray-100 border-b border-slate-600 last:border-b-0">
+                <div class="flex-1 flex flex-row items-center gap-x-4">
+                    <img class="h-12 w-12" src="/img/android-chrome-512x512.png" alt="">
+                    <div class="text-sm">
+                        <h4>Just like you</h4>
+                        <span class="text-gray-400">Titre • NF • CLOUDS (THE MIXTAPE) • 4:12</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <% } else { %> 
+        
+        <!-- Recent Searches -->
+        <!-- Heading -->
+        <div class="mt-4 flex flex-row sm:w-3/4 mx-auto px-2 mb-4">
+            <h1 class="text-md text-lg text-gray-100 flex-1">Recent Searches</h1>
+            <a class="font-bold text-secondary justify-end">Clear all</a>
+        </div>
+        <!-- Content -->
+        <div class="flex flex-col sm:w-3/4 mx-auto px-2 font-semibold">
+            <div class="py-2 w-full flex flex-row items-center text-gray-400">
+                <span class="flex-1 text-sm">Just like you</span>
+                <i class="fa fa-times justify-end"></i>
+            </div>
+            <div class="py-2 w-full flex flex-row items-center text-gray-400">
+                <span class="flex-1 text-sm">Just like you</span>
+                <i class="fa fa-times justify-end"></i>
+            </div>
+            <div class="py-2 w-full flex flex-row items-center text-gray-400">
+                <span class="flex-1 text-sm">Just like you</span>
+                <i class="fa fa-times justify-end"></i>
+            </div>
+        </div>
+        <!-- Trending Search -->
+        <!-- Heading -->
+        <div class="mt-4 flex flex-row sm:w-3/4 mx-auto px-2 mb-4">
+            <h1 class="text-md text-lg text-gray-100 flex-1">Trending Search</h1>
+            <a class="font-bold text-secondary justify-end">See all</a>
+        </div>
+        <!-- Content -->
+        <div class="flex flex-col sm:w-3/4 mx-auto px-2 font-semibold">
+            <div class="py-3 w-full flex flex-row items-center text-gray-100 border-b border-slate-600 last:border-b-0">
+                <div class="flex-1 flex flex-row items-center gap-x-4">
+                    <img class="h-12 w-12" src="/img/android-chrome-512x512.png" alt="">
+                    <div class="text-sm">
+                        <h4>Just like you</h4>
+                        <span class="text-gray-400">NF</span>
+                    </div>
+                </div>
+                <i class="fa fa-plus justify-end text-secondary"></i>
+            </div>
+            <div class="py-3 w-full flex flex-row items-center text-gray-100 border-b border-slate-600 last:border-b-0">
+                <div class="flex-1 flex flex-row items-center gap-x-4">
+                    <img class="h-12 w-12" src="/img/android-chrome-512x512.png" alt="">
+                    <div class="text-sm">
+                        <h4>Just like you</h4>
+                        <span class="text-gray-400">NF</span>
+                    </div>
+                </div>
+                <i class="fa fa-plus justify-end text-secondary"></i>
+            </div>
+        </div>
+        <% } %> 
+    </div>
+</section>

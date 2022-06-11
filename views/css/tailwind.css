@@ -33,12 +33,27 @@
         background-color: rgba(0, 0, 0, .25);
     }
 
-    #playlist> :first-child {
+    #playlist > :first-child {
         @apply transition;
         transition-property: height;
     }
 
-    #playlist.open> :first-child {
+    #playlist.open > :first-child {
         height: 54vh;
+    }
+
+    .progress-bar, .progress-bar > .bar {
+        @apply absolute bottom-0 w-full;
+        height: 1px;
+    }
+
+    .progress-bar {
+        @apply bg-slate-700;
+    }
+
+    .progress-bar > .bar {
+        @apply bg-secondary;
+        transform: scaleX(0);
+        transform-origin: left center;
     }
 }

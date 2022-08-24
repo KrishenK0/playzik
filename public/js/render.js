@@ -51,30 +51,6 @@ $(document).ready(() => {
         audio.play();
     }
 
-    // function process(data) {
-    //     source = context.createBufferSource(); // Create Sound Source
-    //     context.decodeAudioData(data, function (buffer) {
-    //         source.buffer = buffer;
-    //         source.connect(context.destination);
-    //         source.start(context.currentTime);
-
-    //     })
-    // }
-
-    // // success callback when requesting audio input stream
-    // function gotStream(stream) {
-    //     window.AudioContext = window.AudioContext || window.webkitAudioContext;
-    //     var audioContext = new AudioContext();
-
-    //     // Create an AudioNode from the stream.
-    //     var mediaStreamSource = audioContext.createMediaStreamSource(stream);
-
-    //     // Connect it to the destination to hear yourself (or any other node for processing!)
-    //     mediaStreamSource.connect(audioContext.destination);
-    // }
-
-
-
     /* Sections */
     $('a[data-xhr]').on('click', function (e) {
         e.preventDefault();
@@ -88,7 +64,7 @@ $(document).ready(() => {
     function ajaxLoadSection(url, isPlayer = false) {
         $.get(url, {}, (data) => {
             console.log('Content loaded')
-            if (!player) {
+            if (!isPlayer) {
                 $('#contents').html(data);
                 $('#footer-btn a').each(function () {
                     if ($(this).attr('data-xhr') == history.state.browseEndPoint.browseId) $(this).addClass('text-secondary');

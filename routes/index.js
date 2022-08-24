@@ -1,8 +1,9 @@
 const request = require('superagent');
-const tmp = require('tmp');
 const fs = require('fs');
 const ytdl = require('ytdl-core');
 let express = require('express');
+let cors = require('cors');
+const { response } = require('express');
 let router = express.Router();
 
 
@@ -16,7 +17,7 @@ router.get('/search', (req, res) => {
 });
 
 router.get('/player', (req, res) => {
-    res.render('template', { template: 'player' });
+    res.render('template', { player: 'player' });
 });
 
 router.get('/profile', (req, res) => {
@@ -24,12 +25,11 @@ router.get('/profile', (req, res) => {
 });
 
 
-
-
 router.get('/api/music/:id', (req, res) => {
     if (req.params.id && ytdl.validateID(req.params.id)) {
         ytdl.getInfo(req.params.id, { quality: 'highestaudio' }).then(info => {
-            res.json(info.videoDetails);
+            let audioFormats = ytdl.filterFormats(info.formats, 'audioonly')[0];
+            res.json({ url: `http://${req.get('host') + req.originalUrl.replace(/api\//, '')}`, status: res.statusCode, info: audioFormats });
         });
     }
 })
@@ -38,6 +38,7 @@ router.get('/api/:page', (req, res) => {
     res.status(200);
     res.render('pages/' + req.params.page);
 })
+
 
 
 router.get('/music/:id', (req, res) => {
@@ -85,6 +86,7 @@ router.get('/music/:id', (req, res) => {
 
     }
 });
+
 
 router.get('/logout', (req, res) => {
     req.session.destroy();
@@ -141,7 +143,7 @@ router.get('/login/youtube', (req, res) => {
                 }
                 oauth2Client.credentials = token;
                 storeToken(token);
-                res.redirect('/');
+                // res.redirect('/');
             });
         } else {
 
@@ -191,6 +193,7 @@ router.get('/login/youtube', (req, res) => {
      * @param {google.auth.OAuth2} auth An authorized OAuth2 client.
      */
     function getChannel(auth) {
+        console.log(auth);
         var service = google.youtube('v3');
         service.channels.list({
             auth: auth,

@@ -232,9 +232,6 @@ function sanitizeSearch(datas) {
 router.get('/youtube/lyrics/:videoID', async (req, res) => {
     if (!req.session.googleId) req.session.googleId = await get_visitor_id()
     if (req.params.videoID) {
-        // Get browseID in tabRenderer on :
-        //https://music.youtube.com/youtubei/v1/browse?alt=json&key=AIzaSyC9XL3ZjWddXya6X74dJoCTL-WEYFDNX30
-
         reqNext(req.session.googleId, req.params.videoID).then(response => {
             request.post(`https://music.youtube.com/youtubei/v1/browse?alt=json&key=AIzaSyC9XL3ZjWddXya6X74dJoCTL-WEYFDNX30`)
                 .set(ytheader)
@@ -248,6 +245,36 @@ router.get('/youtube/lyrics/:videoID', async (req, res) => {
         }).catch(error => res.status(400).json(error));
     } else res.sendStatus(400);
 
+})
+
+router.get('/youtube/related/:videoID', async (req, res) => {
+    if (!req.session.googleId) req.session.googleId = await get_visitor_id()
+    if (req.params.videoID) {
+        reqNext(req.session.googleId, req.params.videoID)
+            .then(response => {
+                if (response.content[1]) {
+                    request.post(`https://music.youtube.com/youtubei/v1/browse?alt=json&key=AIzaSyC9XL3ZjWddXya6X74dJoCTL-WEYFDNX30`)
+                        .set(ytheader)
+                        .set({ 'X-Goog-Visitor-Id': req.session.googleId })
+                        .send({ 'browseId': response.content[1].browseId, 'context': { 'client': { 'clientName': 'WEB_REMIX', 'clientVersion': '0.1', 'hl': 'en' }, 'user': {} } })
+                        .then(async response => {
+                            res.json(await sanitizeBrowse(JSON.parse(response.text)));
+                        }).catch(error => {
+                            res.status(error.status || error.code || 400).json(error);
+                        })
+                } else res.status(400).json({ code: 400, error: { msg: 'No browse ID found' } })
+            })
+            .catch(error => res.status(400).json(error));
+    } else res.sendStatus(400);
+})
+
+router.get('/youtube/next/:videoID', async (req, res) => {
+    if (!req.session.googleId) req.session.googleId = await get_visitor_id()
+    if (req.params.videoID) {
+        reqNext(req.session.googleId, req.params.videoID)
+            .then(response => res.json(response))
+            .catch(error => res.status(400).json(error));
+    } else res.sendStatus(400);
 })
 
 function reqNext(googleId, videoID) {
@@ -359,10 +386,13 @@ function sanitizeBrowse(datas) {
             SECTIONS = datas.continuationContents.sectionListContinuation.contents;
             if (datas.continuationContents.sectionListContinuation.continuations)
                 continuation = datas.continuationContents.sectionListContinuation.continuations[0].nextContinuationData.continuation;
+        } else if (datas.contents.sectionListRenderer) {
+            SECTIONS = datas.contents.sectionListRenderer.contents;
         } else {
             SECTIONS = datas.contents.singleColumnBrowseResultsRenderer.tabs[0].tabRenderer.content.sectionListRenderer.contents;
             continuation = datas.contents.singleColumnBrowseResultsRenderer.tabs[0].tabRenderer.content.sectionListRenderer.continuations[0].nextContinuationData.continuation;
         }
+
 
         try {
             for (const index in SECTIONS) {
@@ -373,71 +403,80 @@ function sanitizeBrowse(datas) {
                     let items = [], content, thumbnails, id, labels;
                     if (k === 'musicTastebuilderShelfRenderer') continue;
 
-                    [...element[k].contents].forEach(x => {
-                        if (x.musicResponsiveListItemRenderer) {
-                            content = x.musicResponsiveListItemRenderer;
+                    if (k != 'musicDescriptionShelfRenderer') {
+                        [...element[k].contents].forEach(x => {
+                            if (x.musicResponsiveListItemRenderer) {
+                                content = x.musicResponsiveListItemRenderer;
 
-                            thumbnails = content.thumbnail.musicThumbnailRenderer.thumbnail.thumbnails;
+                                thumbnails = content.thumbnail.musicThumbnailRenderer.thumbnail.thumbnails;
 
-                            if (content.playlistItemData)
-                                id = {
-                                    browseId: content.playlistItemData.videoId,
-                                    context: "MUSIC_PAGE_TYPE_SONG"
+                                if (content.playlistItemData)
+                                    id = {
+                                        browseId: content.playlistItemData.videoId,
+                                        context: "MUSIC_PAGE_TYPE_SONG"
+                                    };
+                                else if (content.navigationEndpoint)
+                                    id = {
+                                        browseId: content.navigationEndpoint.browseEndpoint.browseId,
+                                        context: content.navigationEndpoint.browseEndpoint.browseEndpointContextSupportedConfigs.browseEndpointContextMusicConfig.pageType
+                                    };
+
+                                labels = [];
+                                [...content.flexColumns].forEach(y => {
+                                    if (y.musicResponsiveListItemFlexColumnRenderer.text.runs) {
+                                        labels.push(y.musicResponsiveListItemFlexColumnRenderer.text.runs.shift().text);
+                                    }
+                                });
+                            } else if (x.musicTwoRowItemRenderer) {
+                                content = x.musicTwoRowItemRenderer;
+                                thumbnails = content.thumbnailRenderer.musicThumbnailRenderer.thumbnail.thumbnails;
+                                id = {};
+
+                                if (content.navigationEndpoint && content.navigationEndpoint.browseEndpoint)
+                                    id = {
+                                        browseId: content.navigationEndpoint.browseEndpoint.browseId,
+                                        context: content.navigationEndpoint.browseEndpoint.browseEndpointContextSupportedConfigs.browseEndpointContextMusicConfig.pageType
+                                    };
+                                else if (content.navigationEndpoint && content.navigationEndpoint.watchEndpoint)
+                                    id = {
+                                        browseId: {
+                                            videoId: content.navigationEndpoint.watchEndpoint.videoId,
+                                            playlistId: content.navigationEndpoint.watchEndpoint.playlistId,
+                                        },
+                                        context: content.navigationEndpoint.watchEndpoint.watchEndpointMusicSupportedConfigs.watchEndpointMusicConfig.musicVideoType
+                                    };
+
+                                labels = {
+                                    title: content.title.runs[0].text,
+                                    subtitle: [],
                                 };
-                            else if (content.navigationEndpoint)
-                                id = {
-                                    browseId: content.navigationEndpoint.browseEndpoint.browseId,
-                                    context: content.navigationEndpoint.browseEndpoint.browseEndpointContextSupportedConfigs.browseEndpointContextMusicConfig.pageType
-                                };
+                                [...content.subtitle.runs].forEach(y => {
+                                    labels.subtitle.push(y.text);
+                                })
+                            } else if (x.musicCarouselShelfRenderer) {
 
-                            labels = [];
-                            [...content.flexColumns].forEach(y => {
-                                if (y.musicResponsiveListItemFlexColumnRenderer.text.runs) {
-                                    labels.push(y.musicResponsiveListItemFlexColumnRenderer.text.runs.shift().text);
-                                }
-                            });
-                        } else if (x.musicTwoRowItemRenderer) {
-                            content = x.musicTwoRowItemRenderer;
-                            thumbnails = content.thumbnailRenderer.musicThumbnailRenderer.thumbnail.thumbnails;
-                            id = {};
+                            }
 
-                            if (content.navigationEndpoint && content.navigationEndpoint.browseEndpoint)
-                                id = {
-                                    browseId: content.navigationEndpoint.browseEndpoint.browseId,
-                                    context: content.navigationEndpoint.browseEndpoint.browseEndpointContextSupportedConfigs.browseEndpointContextMusicConfig.pageType
-                                };
-                            else if (content.navigationEndpoint && content.navigationEndpoint.watchEndpoint)
-                                id = {
-                                    browseId: {
-                                        videoId: content.navigationEndpoint.watchEndpoint.videoId,
-                                        playlistId: content.navigationEndpoint.watchEndpoint.playlistId,
-                                    },
-                                    context: content.navigationEndpoint.watchEndpoint.watchEndpointMusicSupportedConfigs.watchEndpointMusicConfig.musicVideoType
-                                };
+                            let item = {
+                                id: id,
+                                thumbnail: thumbnails,
+                                'labels': labels
+                            }
+                            items.push(item);
+                        })
 
-                            labels = {
-                                title: content.title.runs[0].text,
-                                subtitle: [],
-                            };
-                            [...content.subtitle.runs].forEach(y => {
-                                labels.subtitle.push(y.text);
-                            })
+                        section = {
+                            sectionTitle: element[k].header.musicCarouselShelfBasicHeaderRenderer.title.runs[0].text,
+                            sectionContext: Object.keys(element[k].contents[0])[0],
+                            sectionContents: items,
                         }
-
-                        let item = {
-                            id: id,
-                            thumbnail: thumbnails,
-                            'labels': labels
+                    } else if (k === 'musicDescriptionShelfRenderer') {
+                        section = {
+                            sectionTitle: element[k].header.runs[0].text,
+                            sectionContents: element[k].description.runs[0].text,
                         }
-                        items.push(item);
-                    })
-
-
-                    section = {
-                        sectionTitle: element[k].header.musicCarouselShelfBasicHeaderRenderer.title.runs[0].text,
-                        sectionContext: Object.keys(element[k].contents[0])[0],
-                        sectionContents: items,
                     }
+
 
                     output.push(section);
                 }
@@ -446,7 +485,7 @@ function sanitizeBrowse(datas) {
 
             resolve({ code: 200, 'items': output, 'continuation': continuation });
         } catch (error) {
-            reject({ code: 500, error: { msg: 'Error while parsing', content: datas } });
+            reject({ code: 500, error: { msg: `Error while parsing (${error})`, content: datas } });
         }
     })
 }

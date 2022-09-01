@@ -59,6 +59,7 @@
     "express-session": "^1.17.3",
     "googleapis": "^101.0.0",
     "https": "^1.0.0",
+    "mongoose": "^6.5.3",
     "nodemon": "^2.0.16",
     "socket.io": "^4.5.1",
     "socket.io-stream": "^0.9.1",
@@ -81,6 +82,6 @@
     "electron-reloader": "^1.2.3",
     "postcss": "^8.4.14",
     "tailwindcss": "^3.0.24",
-    "ytdl-core": "^4.11.0"
+    "ytdl-core": "^4.11.1"
   }
 }

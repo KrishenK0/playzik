@@ -21,7 +21,9 @@ const socket = require('socket.io');
 const io = socket(server, { cors: { origin: '*', } });
 
 const mongoose = require('mongoose');
-mongoose.connect(process.env.MONGO_URL);
+mongoose.connect(process.env.MONGO_URL, (error) => {
+    console.log((!error) ? '[ MONGODB ] Connected successfuly' : error);
+});
 var Schema = mongoose.Schema;
 
 var UsersData = mongoose.model('UsersData',
@@ -42,6 +44,7 @@ var RoomData = mongoose.model('RoomData',
                 socketId: String,
             }
         ],
+        currentId: Number,
         content: [{ type: Object, require: true }],
     }, { collection: 'rooms' })
 );
@@ -146,6 +149,7 @@ io.on('connection', (socket) => {
         if (Array.from(socket.rooms).includes(to) && content.trackId && content.requester) {
             console.log('found');
             await RoomData.findById(to).then(room => {
+                if (room.content.length === 0) room.currentId = 0;
                 room.content.push({
                     trackId: content.trackId,
                     requester: content.requester,

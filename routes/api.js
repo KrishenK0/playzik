@@ -72,12 +72,21 @@ router.get('/youtube/musicInfo/:videoID', async (req, res) => {
             })
             .then(async response => {
                 const bestFormat = await getURLVideoID(req.params.videoID);
-                // res.json(sanitizeSearch(JSON.parse(response.text)));
+
+                // Sanitize thumbnail render
+                var infoPayload = JSON.parse(response.text).videoDetails;
+                infoPayload.thumbnail.thumbnails = [];
+                [...JSON.parse(response.text).videoDetails.thumbnail.thumbnails].forEach(thumbnail => {
+                    thumbnail.aspectRatio = parseFloat((thumbnail.width/thumbnail.height).toFixed(2));
+
+                    infoPayload.thumbnail.thumbnails.push(thumbnail);
+                })
+
                 res.json({
                     url: `http://${req.get('host') + req.originalUrl.replace(/api\//, '')}`,
                     status: res.statusCode,
                     format: bestFormat,
-                    info: JSON.parse(response.text).videoDetails
+                    info: infoPayload
                 });
             }).catch(error => {
                 res.status(error.status || error.code).json(error);

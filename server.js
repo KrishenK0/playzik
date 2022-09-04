@@ -6,6 +6,7 @@ const api = require('./routes/api');
 const cors = require('cors');
 const cookieParser = require("cookie-parser");
 const sessions = require('express-session');
+const request = require('superagent');
 
 const app = express();
 // DEBUG: set a ssl certificat (https)
@@ -19,6 +20,8 @@ const server = require('http').createServer(app);
 
 const socket = require('socket.io');
 const io = socket(server, { cors: { origin: '*', } });
+
+const port = 8080;
 
 const mongoose = require('mongoose');
 mongoose.connect(process.env.MONGO_URL, (error) => {
@@ -44,7 +47,12 @@ var RoomData = mongoose.model('RoomData',
                 socketId: String,
             }
         ],
-        currentId: Number,
+        player: {
+            trackId: { type: String },
+            currentId: { type: String },
+            playing: { type: Boolean },
+            currentTime: { type: Number },
+        },
         content: [{ type: Object, require: true }],
     }, { collection: 'rooms' })
 );
@@ -134,30 +142,75 @@ io.on('connection', (socket) => {
     socket.on('join-room', async (userId, roomId, callback) => {
         await RoomData.findById(roomId).then(room => {
             room.users.push({ id: userId, socketId: socket.id });
-            room.save();
+
+            room.save((err, room) => {
+                socket.join(room.id);
+                socket.to(room.owner.socketId).emit('force-update-player', true);
+                console.log(`${socket.id} has joined room ${room.id}`)
+                socket.to(room.id).emit('new-data', room);
+                callback(true);
+            });
         })
 
-        socket.join(roomId);
-        console.log(`${socket.id} has joined room ${roomId}`)
-        callback(true);
-        // io.emit('new-user', users);
     });
 
     socket.on('send-data', async ({ content, to, sender }) => {
-        console.log({ content, to, sender });
+        console.log({ content, to, sender }, 'send-data');
 
         if (Array.from(socket.rooms).includes(to) && content.trackId && content.requester) {
-            console.log('found');
             await RoomData.findById(to).then(room => {
-                if (room.content.length === 0) room.currentId = 0;
-                room.content.push({
-                    trackId: content.trackId,
-                    requester: content.requester,
-                    vote: [content.requester],
-                });
-                room.save((err, room) => {
-                    io.in(to).emit('new-data', room);
-                });
+                request.get(`http://localhost:${port}/api/youtube/musicInfo/${content.trackId}`).then(response => {
+                    room.content.push({
+                        trackInfo: JSON.parse(response.text).info,
+                        requester: content.requester,
+                        vote: [socket.id],
+                    });
+                    room.markModified('content');
+                    room.save((err, room) => {
+                        io.in(to).emit('new-data', room);
+                    });
+                })
+            })
+        }
+    });
+
+    socket.on('update-vote', async ({ trackId, to, sender }) => {
+        console.log({ trackId, to, sender }, 'update-vote');
+
+        if (Array.from(socket.rooms).includes(to)) {
+            await RoomData.findById(to).then(async room => {
+                const index = room.content.findIndex(track => track.trackInfo.videoId === trackId);
+                if (index !== -1) {
+                    const userIndex = room.content[index].vote.findIndex(user => user === socket.id);
+                    console.log(room.content[index].vote, userIndex);
+                    (userIndex !== -1) ? await room.content[index].vote.splice(userIndex, 1) : await room.content[index].vote.push(socket.id);
+
+                    room.markModified('content');
+                    room.save((err, room) => {
+                        // console.log(room)
+                        io.in(to).emit('new-data', room);
+                    });
+                }
+            })
+        }
+    });
+
+    socket.on('update-player', async ({ player, to }) => {
+        console.log({ player, to }, 'update-player');
+
+        if (Array.from(socket.rooms).includes(to)) {
+            await RoomData.findById(to).then(room => {
+                if (room.owner.socketId === socket.id) {
+                    if (room.content.length === 0) room.player.currentId = 0;
+
+                    room.player.trackId = player.trackId;
+                    room.player.playing = player.playing;
+                    room.player.currentTime = player.currentTime;
+
+                    room.save((err, room) => {
+                        socket.in(to).emit('update-player', room);
+                    });
+                }
             })
         }
     });
@@ -180,8 +233,6 @@ io.on('connection', (socket) => {
 
     socket.on('disconnect', _ => {
         console.log('[-] Disconnection ', socket.id);
-        // users = users.filter(u => u.id !== socket.id);
-        // io.emit('new-user', users);
     })
 });
 
@@ -222,4 +273,4 @@ app.use(function (err, req, res, next) {
 });
 
 
-server.listen(8080, () => console.log('Listening on port : 8080'));
+server.listen(port, () => console.log(`Listening on port : ${port}`));

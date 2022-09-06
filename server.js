@@ -120,9 +120,11 @@ io.on('connection', (socket) => {
         createUser({ _id: googleId });
     })
 
-    socket.on('ping', (data) => {
-        console.log(socket, data)
-        io.emit('ping', 'PONG');
+    socket.on('ping-room', async _ => {
+        await RoomData.findById(roomId).then(room => {
+            if (room.users.find(user => user.socketId === socket.id))
+                io.in(socket.id).emit('new-data', room);
+        })
     })
 
     socket.on('create-room', (userId, callback) => {
@@ -145,7 +147,7 @@ io.on('connection', (socket) => {
 
             room.save((err, room) => {
                 socket.join(room.id);
-                socket.to(room.owner.socketId).emit('force-update-player', true);
+                socket.to(room.owner.socketId).emit('force-update-player');
                 console.log(`${socket.id} has joined room ${room.id}`)
                 socket.to(room.id).emit('new-data', room);
                 callback(true);
@@ -155,11 +157,14 @@ io.on('connection', (socket) => {
     });
 
     socket.on('send-data', async ({ content, to, sender }) => {
-        console.log({ content, to, sender }, 'send-data');
+        // console.log({ content, to, sender }, 'send-data');
 
         if (Array.from(socket.rooms).includes(to) && content.trackId && content.requester) {
             await RoomData.findById(to).then(room => {
                 request.get(`http://localhost:${port}/api/youtube/musicInfo/${content.trackId}`).then(response => {
+                    if (room.content.length === 0) {
+                        room.player.currentId = content.trackId;
+                    }
                     room.content.push({
                         trackInfo: JSON.parse(response.text).info,
                         requester: content.requester,
@@ -167,6 +172,7 @@ io.on('connection', (socket) => {
                     });
                     room.markModified('content');
                     room.save((err, room) => {
+                        console.log(room, 'send-data');
                         io.in(to).emit('new-data', room);
                     });
                 })
@@ -175,15 +181,16 @@ io.on('connection', (socket) => {
     });
 
     socket.on('update-vote', async ({ trackId, to, sender }) => {
-        console.log({ trackId, to, sender }, 'update-vote');
+        // console.log({ trackId, to, sender }, 'update-vote');
 
         if (Array.from(socket.rooms).includes(to)) {
             await RoomData.findById(to).then(async room => {
                 const index = room.content.findIndex(track => track.trackInfo.videoId === trackId);
                 if (index !== -1) {
                     const userIndex = room.content[index].vote.findIndex(user => user === socket.id);
-                    console.log(room.content[index].vote, userIndex);
                     (userIndex !== -1) ? await room.content[index].vote.splice(userIndex, 1) : await room.content[index].vote.push(socket.id);
+
+                    room.content.sort((a, b) => { return b.vote.length - a.vote.length })
 
                     room.markModified('content');
                     room.save((err, room) => {
@@ -196,18 +203,18 @@ io.on('connection', (socket) => {
     });
 
     socket.on('update-player', async ({ player, to }) => {
-        console.log({ player, to }, 'update-player');
+        // console.log({ player, to }, 'update-player');
 
         if (Array.from(socket.rooms).includes(to)) {
             await RoomData.findById(to).then(room => {
                 if (room.owner.socketId === socket.id) {
-                    if (room.content.length === 0) room.player.currentId = 0;
 
-                    room.player.trackId = player.trackId;
+                    room.player.currentId = player.currentId;
                     room.player.playing = player.playing;
                     room.player.currentTime = player.currentTime;
 
                     room.save((err, room) => {
+                        console.log(room, 'update-player')
                         socket.in(to).emit('update-player', room);
                     });
                 }

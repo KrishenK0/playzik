@@ -32,30 +32,37 @@ var Schema = mongoose.Schema;
 var UsersData = mongoose.model('UsersData',
     new Schema({
         _id: String,
+        token: String,
         rooms: [{ type: 'ObjectId', ref: 'RoomData' }],
     }, { collection: 'users' })
 );
-var RoomData = mongoose.model('RoomData',
-    new Schema({
-        owner: {
-            id: { type: String, ref: 'UsersData' },
+
+let RoomSchema = mongoose.Schema({
+    owner: {
+        ownerId: { type: String, },
+        socketId: String,
+    },
+    users: [
+        {
+            _id: String,
             socketId: String,
-        },
-        users: [
-            {
-                id: { type: String, ref: 'UsersData' },
-                socketId: String,
-            }
-        ],
-        player: {
-            trackId: { type: String },
-            currentId: { type: String },
-            playing: { type: Boolean },
-            currentTime: { type: Number },
-        },
-        content: [{ type: Object, require: true }],
-    }, { collection: 'rooms' })
-);
+        }
+    ],
+    player: {
+        trackId: { type: String },
+        currentId: { type: String },
+        playing: { type: Boolean },
+        currentTime: { type: Number },
+    },
+    content: [{ type: Object, require: true }],
+}, { collection: 'rooms', toJSON: { virutals: true }, toObject: { virtuals: true } })
+RoomSchema.virtual('user_detail', {
+    ref: 'UsersData',
+    localField: 'ownerId',
+    foreignField: '_id',
+})
+
+var RoomData = mongoose.model('RoomData', RoomSchema);
 
 // view engine
 app.set('views', path.join(__dirname, 'views'));
@@ -108,16 +115,12 @@ async function createUser(user) {
         return UsersData.create(user);
 }
 
-async function createRoom(userId) {
-
-}
-
 io.on('connection', (socket) => {
     console.log('[+] Connection ', socket.id);
-    socket.emit('reset-room', null);
+    socket.emit('reset-room');
 
-    socket.on('update-user', (googleId) => {
-        createUser({ _id: googleId });
+    socket.on('update-user', (payload) => {
+        createUser(payload);
     })
 
     socket.on('ping-room', async _ => {
@@ -129,14 +132,23 @@ io.on('connection', (socket) => {
 
     socket.on('create-room', (userId, callback) => {
         var data = new RoomData(
-            { owner: { id: userId, socketId: socket.id }, users: [{ id: userId, socketId: socket.id }], content: [] }
+            {
+                owner: {
+                    ownerId: userId,
+                    socketId: socket.id
+                }, users: [{ _id: userId, socketId: socket.id }], content: []
+            }
         );
-        data.save((err, room) => {
+        data.save(async (err, room) => {
             if (!err) {
                 console.log('room created\nID :', room.id);
                 socket.join(room.id);
                 callback(room.id);
-                console.log(`${socket.id} have join the room ${room.id}`)
+                console.log(`${socket.id} have join the room ${room.id}`);
+
+                data.populate('user_detail').then(items => {
+                    console.log(items);
+                })
             } else console.log(err);
         });
     });
@@ -149,7 +161,7 @@ io.on('connection', (socket) => {
                 socket.join(room.id);
                 socket.to(room.owner.socketId).emit('force-update-player');
                 console.log(`${socket.id} has joined room ${room.id}`)
-                socket.to(room.id).emit('new-data', room);
+                io.to(room.id).emit('new-data', room);
                 callback(true);
             });
         })
@@ -172,7 +184,14 @@ io.on('connection', (socket) => {
                     });
                     room.markModified('content');
                     room.save((err, room) => {
-                        console.log(room, 'send-data');
+                        room.users.forEach(user => {
+                            console.log(user);
+                            // request.get(`https://www.googleapis.com/oauth2/v1/userinfo?alt=json&access_token=${''}`)
+                            // .then(response => {
+                            //     console.log(response)
+                            // })
+                        })
+                        // console.log(room, 'send-data');
                         io.in(to).emit('new-data', room);
                     });
                 })
@@ -214,7 +233,7 @@ io.on('connection', (socket) => {
                     room.player.currentTime = player.currentTime;
 
                     room.save((err, room) => {
-                        console.log(room, 'update-player')
+                        // console.log(room, 'update-player')
                         socket.in(to).emit('update-player', room);
                     });
                 }

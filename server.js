@@ -114,7 +114,7 @@ function sanitizeRoom(room) {
 
 io.on('connection', (socket) => {
     console.log('[+] Connection ', socket.id);
-    socket.emit('reset-room', null);
+    socket.emit('reset-room');
 
     socket.on('update-user', async (googleId) => {
         createUser(parseInt(googleId));

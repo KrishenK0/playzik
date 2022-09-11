@@ -23,39 +23,21 @@ const io = socket(server, { cors: { origin: '*', } });
 
 const port = 8080;
 
-const mongoose = require('mongoose');
-mongoose.connect(process.env.MONGO_URL, (error) => {
-    console.log((!error) ? '[ MONGODB ] Connected successfuly' : error);
+const mariadb = require('mariadb');
+const { randomUUID } = require('crypto');
+const pool = mariadb.createPool({
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    password: process.env.DB_PWD,
+    database: 'playzik',
+    connectionLimit: 2
 });
-var Schema = mongoose.Schema;
 
-var UsersData = mongoose.model('UsersData',
-    new Schema({
-        _id: String,
-        rooms: [{ type: 'ObjectId', ref: 'RoomData' }],
-    }, { collection: 'users' })
-);
-var RoomData = mongoose.model('RoomData',
-    new Schema({
-        owner: {
-            id: { type: String, ref: 'UsersData' },
-            socketId: String,
-        },
-        users: [
-            {
-                id: { type: String, ref: 'UsersData' },
-                socketId: String,
-            }
-        ],
-        player: {
-            trackId: { type: String },
-            currentId: { type: String },
-            playing: { type: Boolean },
-            currentTime: { type: Number },
-        },
-        content: [{ type: Object, require: true }],
-    }, { collection: 'rooms' })
-);
+pool.getConnection((err, connection) => {
+    if (err) console.log(`[ MariaDB ] Connection ERROR (${err.text})`)
+    if (connection) connection.release();
+    return;
+}).then(() => console.log(`[ MariaDB ] Connection SUCCESSFULLY`));
 
 // view engine
 app.set('views', path.join(__dirname, 'views'));
@@ -103,21 +85,39 @@ app.use(sessions({
 
 // Websocket
 
-async function createUser(user) {
-    if (!await UsersData.findOne({ _id: user._id }))
-        return UsersData.create(user);
+async function createUser(googleId) {
+    if (!(await pool.query('SELECT * FROM users WHERE googleId = ?', googleId)).length)
+        return await pool.query('INSERT INTO `users`(`googleId`) VALUES (?)', googleId);
 }
 
-async function createRoom(userId) {
+async function getRoomById(id) {
+    return sanitizeRoom((await pool.query('SELECT * FROM rooms WHERE id = ?', parseInt(id))).slice(-1, 1)[0]);
+}
 
+async function getRoomByUUID(uuid) {
+    return sanitizeRoom((await pool.query('SELECT * FROM rooms WHERE uuid = ?', uuid)).slice(-1, 1)[0]);
+}
+
+function sanitizeRoom(room) {
+    sanitizedRoom = { ...Object.fromEntries(Object.entries(room).filter(([k, v]) => typeof v !== 'string')) }
+    for (var col of Object.entries(room)) {
+        if (typeof col[1] == 'string') {
+            try {
+                sanitizedRoom = { ...sanitizedRoom, [col[0]]: JSON.parse(col[1]) }
+            } catch (error) {
+                sanitizedRoom = { ...sanitizedRoom, [col[0]]: col[1] }
+            }
+        }
+    }
+    return sanitizedRoom;
 }
 
 io.on('connection', (socket) => {
     console.log('[+] Connection ', socket.id);
     socket.emit('reset-room', null);
 
-    socket.on('update-user', (googleId) => {
-        createUser({ _id: googleId });
+    socket.on('update-user', async (googleId) => {
+        createUser(parseInt(googleId));
     })
 
     socket.on('ping-room', async _ => {
@@ -127,56 +127,69 @@ io.on('connection', (socket) => {
         })
     })
 
-    socket.on('create-room', (userId, callback) => {
-        var data = new RoomData(
-            { owner: { id: userId, socketId: socket.id }, users: [{ id: userId, socketId: socket.id }], content: [] }
-        );
-        data.save((err, room) => {
-            if (!err) {
-                console.log('room created\nID :', room.id);
-                socket.join(room.id);
-                callback(room.id);
-                console.log(`${socket.id} have join the room ${room.id}`)
-            } else console.log(err);
-        });
+    socket.on('create-room', async (userId, callback) => {
+        var payload = {
+            owner: { id: userId, socketId: socket.id },
+            users: [{ id: userId, socketId: socket.id }]
+        }
+        pool.query('INSERT INTO `rooms`(`infos`, `uuid`) VALUES (?, ?)', [payload, randomUUID()]).then(async status => {
+            const room = await getRoomById(status.insertId);
+            if (room) {
+                console.log('room created\nID :', room.uuid);
+                socket.join(room.uuid);
+                callback(room.uuid);
+                console.log(`${socket.id} have join the room ${room.uuid}`)
+            } else console.log('No room found');
+        })
     });
 
     socket.on('join-room', async (userId, roomId, callback) => {
-        await RoomData.findById(roomId).then(room => {
-            room.users.push({ id: userId, socketId: socket.id });
-
-            room.save((err, room) => {
-                socket.join(room.id);
-                socket.to(room.owner.socketId).emit('force-update-player');
-                console.log(`${socket.id} has joined room ${room.id}`)
-                socket.to(room.id).emit('new-data', room);
-                callback(true);
-            });
-        })
-
+        let room = await getRoomByUUID(roomId)
+        if (room) {
+            room.infos.users.push({ id: userId, socketId: socket.id });
+            pool.query('UPDATE `rooms` SET `infos`= ? WHERE id = ?', [room.infos, room.id]).then(async status => {
+                if (status.affectedRows) {
+                    socket.join(roomId);
+                    socket.to(room.infos.owner.socketId).emit('force-update-player');
+                    console.log(`${socket.id} has joined room ${roomId}`)
+                    socket.to(roomId).emit('new-data', room);
+                    callback(true);
+                }
+            })
+        }
     });
 
     socket.on('send-data', async ({ content, to, sender }) => {
         // console.log({ content, to, sender }, 'send-data');
-
         if (Array.from(socket.rooms).includes(to) && content.trackId && content.requester) {
-            await RoomData.findById(to).then(room => {
+            let room = await getRoomByUUID(to);
+            if (room) {
                 request.get(`http://localhost:${port}/api/youtube/musicInfo/${content.trackId}`).then(response => {
-                    if (room.content.length === 0) {
-                        room.player.currentId = content.trackId;
+                    var sql, values;
+                    if (!room.content) {
+                        room.content = { items: [] };
+                        room.player = { currentId: content.trackId };
+                        sql = 'UPDATE `rooms` SET `content`= ?, `player`= ? WHERE id = ?';
+                        values = [room.player, room.id];
+                    } else {
+                        sql = 'UPDATE `rooms` SET `content`= ? WHERE id = ?';
+                        values = [room.id];
                     }
-                    room.content.push({
+
+                    room.content.items.push({
                         trackInfo: JSON.parse(response.text).info,
                         requester: content.requester,
                         vote: [socket.id],
                     });
-                    room.markModified('content');
-                    room.save((err, room) => {
-                        console.log(room, 'send-data');
-                        io.in(to).emit('new-data', room);
-                    });
+
+                    pool.query(sql, [room.content, ...values]).then(async status => {
+                        if (status.affectedRows) {
+                            console.log(room, 'send-data');
+                            io.in(to).emit('new-data', room);
+                        }
+                    })
                 })
-            })
+            }
         }
     });
 
@@ -184,21 +197,21 @@ io.on('connection', (socket) => {
         // console.log({ trackId, to, sender }, 'update-vote');
 
         if (Array.from(socket.rooms).includes(to)) {
-            await RoomData.findById(to).then(async room => {
-                const index = room.content.findIndex(track => track.trackInfo.videoId === trackId);
+            let room = await getRoomByUUID(to);
+            if (room) {
+                const index = room.content.items.findIndex(track => track.trackInfo.videoId === trackId);
                 if (index !== -1) {
-                    const userIndex = room.content[index].vote.findIndex(user => user === socket.id);
-                    (userIndex !== -1) ? await room.content[index].vote.splice(userIndex, 1) : await room.content[index].vote.push(socket.id);
-
-                    room.content.sort((a, b) => { return b.vote.length - a.vote.length })
-
-                    room.markModified('content');
-                    room.save((err, room) => {
-                        // console.log(room)
-                        io.in(to).emit('new-data', room);
-                    });
+                    const userIndex = room.content.items[index].vote.findIndex(user => user === socket.id);
+                    (userIndex !== -1) ? room.content.items[index].vote.splice(userIndex, 1) : room.content.items[index].vote.push(socket.id);
+                    room.content.items.sort((a, b) => { return b.vote.length - a.vote.length })
+                    
+                    pool.query('UPDATE `rooms` SET `content`= ? WHERE id = ?', [room.content, room.id]).then(async status => {
+                        if (status.affectedRows) {
+                            io.in(to).emit('new-data', room);
+                        }
+                    })
                 }
-            })
+            }
         }
     });
 
@@ -206,33 +219,40 @@ io.on('connection', (socket) => {
         // console.log({ player, to }, 'update-player');
 
         if (Array.from(socket.rooms).includes(to)) {
-            await RoomData.findById(to).then(room => {
-                if (room.owner.socketId === socket.id) {
-
+            let room = await getRoomByUUID(to);
+            if (room) {
+                if (room.infos.owner.socketId === socket.id) {
                     room.player.currentId = player.currentId;
                     room.player.playing = player.playing;
                     room.player.currentTime = player.currentTime;
 
-                    room.save((err, room) => {
-                        console.log(room, 'update-player')
-                        socket.in(to).emit('update-player', room);
-                    });
+                    pool.query('UPDATE `rooms` SET `player`= ? WHERE id = ?', [room.player, room.id]).then(async status => {
+                        if (status.affectedRows) {
+                            socket.in(to).emit('update-player', room);
+                        }
+                    })
                 }
-            })
+            }
         }
     });
 
     socket.on('disconnecting', function () {
         var rooms = Array.from(socket.rooms).filter(room => room !== socket.id);
         if (rooms.length > 0) {
-            rooms.forEach(roomId => {
-                RoomData.findById(roomId).then(room => {
-                    room.users = room.users.filter(user => user.socketId !== socket.id);
-                    if (room.ownerId === socket.id) room.ownerId = room.users[0];
-                    room.save((err, room) => {
-                        socket.in(roomId).emit('new-data', room);
-                    });
-                })
+            rooms.forEach(async roomId => {
+                let room = await getRoomByUUID(roomId);
+                if (room) {
+                    room.infos.users = room.infos.users.filter(user => user.socketId !== socket.id);
+                    if (room.infos.owner.socketId === socket.id) room.infos.owner = room.infos.users[0];
+                    room.infos = room.infos.owner ? room.infos : { status: 'inactive' };
+
+                    pool.query('UPDATE `rooms` SET `infos`= ? WHERE id = ?', [room.infos, room.id]).then(async status => {
+                        if (status.affectedRows) {
+                            console.log(`${socket.id} has disconnected room ${roomId}`)
+                            socket.to(roomId).emit('new-data', room);
+                        }
+                    })
+                }
             })
         }
     });

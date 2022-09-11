@@ -37,7 +37,11 @@ pool.getConnection((err, connection) => {
     if (err) console.log(`[ MariaDB ] Connection ERROR (${err.text})`)
     if (connection) connection.release();
     return;
-}).then(() => console.log(`[ MariaDB ] Connection SUCCESSFULLY`));
+}).then(async () => {
+    console.log(`[ MariaDB ] Connection SUCCESSFULLY`)
+    await pool.query('DELETE FROM `rooms_users`');
+    console.log(`[ MariaDB ] Previous active rooms has been reset`);
+});
 
 // view engine
 app.set('views', path.join(__dirname, 'views'));
@@ -84,40 +88,48 @@ app.use(sessions({
 }));
 
 // Websocket
+async function createUser(userId, infos) {
+    if (!(await pool.query('SELECT * FROM users WHERE googleId = ?', userId)).length)
+        return await pool.query('INSERT INTO `users`(`googleId`, `infos`) VALUES (?, ?)', [infos.id, infos]);
+}
 
-async function createUser(googleId) {
-    if (!(await pool.query('SELECT * FROM users WHERE googleId = ?', googleId)).length)
-        return await pool.query('INSERT INTO `users`(`googleId`) VALUES (?)', googleId);
+async function getUserById(userId) {
+    return (await pool.query('SELECT * FROM users WHERE googleId = ?', userId)).slice(-1, 1)[0];
 }
 
 async function getRoomById(id) {
-    return sanitizeRoom((await pool.query('SELECT * FROM rooms WHERE id = ?', parseInt(id))).slice(-1, 1)[0]);
+    return sanitizeRoom((await pool.query('SELECT * FROM rooms WHERE id = ?', parseInt(id))));
 }
 
 async function getRoomByUUID(uuid) {
-    return sanitizeRoom((await pool.query('SELECT * FROM rooms WHERE uuid = ?', uuid)).slice(-1, 1)[0]);
+    return sanitizeRoom((await pool.query('SELECT * FROM rooms WHERE uuid = ?', uuid)));
+}
+
+async function getRoomInerUserById(roomId) {
+    return sanitizeRoom((await pool.query('SELECT * FROM `rooms_users` INNER JOIN users ON rooms_users.userId = users.id WHERE roomId = ?', roomId)));
 }
 
 function sanitizeRoom(room) {
-    sanitizedRoom = { ...Object.fromEntries(Object.entries(room).filter(([k, v]) => typeof v !== 'string')) }
-    for (var col of Object.entries(room)) {
-        if (typeof col[1] == 'string') {
+    room = room.filter(k => k !== 'meta');
+
+    Object.values(room).forEach((row, i) => {
+        for (const pair of Object.entries(row)) {
             try {
-                sanitizedRoom = { ...sanitizedRoom, [col[0]]: JSON.parse(col[1]) }
+                room[i][pair[0]] = JSON.parse(pair[1]);
             } catch (error) {
-                sanitizedRoom = { ...sanitizedRoom, [col[0]]: col[1] }
+                room[i][pair[0]] = pair[1];
             }
         }
-    }
-    return sanitizedRoom;
+    });
+    return room.length > 1 ? room : room[0];
 }
 
 io.on('connection', (socket) => {
     console.log('[+] Connection ', socket.id);
     socket.emit('reset-room');
 
-    socket.on('update-user', async (googleId) => {
-        createUser(parseInt(googleId));
+    socket.on('update-user', async (infos, userId) => {
+        createUser(userId, infos);
     })
 
     socket.on('ping-room', async _ => {
@@ -135,6 +147,7 @@ io.on('connection', (socket) => {
         pool.query('INSERT INTO `rooms`(`infos`, `uuid`) VALUES (?, ?)', [payload, randomUUID()]).then(async status => {
             const room = await getRoomById(status.insertId);
             if (room) {
+                await pool.query('INSERT INTO `rooms_users`(`roomId`,`userId`,`isOwner`,`socketId`) VALUES (?,?,?,?)', [room.id, (await getUserById(userId)).id, true, socket.id]);
                 console.log('room created\nID :', room.uuid);
                 socket.join(room.uuid);
                 callback(room.uuid);
@@ -149,9 +162,12 @@ io.on('connection', (socket) => {
             room.infos.users.push({ id: userId, socketId: socket.id });
             pool.query('UPDATE `rooms` SET `infos`= ? WHERE id = ?', [room.infos, room.id]).then(async status => {
                 if (status.affectedRows) {
+                    await pool.query('INSERT INTO `rooms_users`(`roomId`,`userId`,`socketId`) VALUES (?,?,?)', [room.id, (await getUserById(userId)).id, socket.id]);
                     socket.join(roomId);
                     socket.to(room.infos.owner.socketId).emit('force-update-player');
                     console.log(`${socket.id} has joined room ${roomId}`)
+                    const users = await getRoomInerUserById(room.id);
+                    io.in(roomId).emit('new-user', Array.isArray(users) ? users : [users]);
                     socket.to(roomId).emit('new-data', room);
                     callback(true);
                 }
@@ -181,10 +197,11 @@ io.on('connection', (socket) => {
                         requester: content.requester,
                         vote: [socket.id],
                     });
-
                     pool.query(sql, [room.content, ...values]).then(async status => {
                         if (status.affectedRows) {
-                            console.log(room, 'send-data');
+                            // console.log(room, 'send-data');
+                            const users = await getRoomInerUserById(room.id);
+                            io.in(to).emit('new-user', Array.isArray(users) ? users : [users]);
                             io.in(to).emit('new-data', room);
                         }
                     })
@@ -204,7 +221,7 @@ io.on('connection', (socket) => {
                     const userIndex = room.content.items[index].vote.findIndex(user => user === socket.id);
                     (userIndex !== -1) ? room.content.items[index].vote.splice(userIndex, 1) : room.content.items[index].vote.push(socket.id);
                     room.content.items.sort((a, b) => { return b.vote.length - a.vote.length })
-                    
+
                     pool.query('UPDATE `rooms` SET `content`= ? WHERE id = ?', [room.content, room.id]).then(async status => {
                         if (status.affectedRows) {
                             io.in(to).emit('new-data', room);
@@ -243,12 +260,17 @@ io.on('connection', (socket) => {
                 let room = await getRoomByUUID(roomId);
                 if (room) {
                     room.infos.users = room.infos.users.filter(user => user.socketId !== socket.id);
-                    if (room.infos.owner.socketId === socket.id) room.infos.owner = room.infos.users[0];
-                    room.infos = room.infos.owner ? room.infos : { status: 'inactive' };
+                    if (room.infos.owner.socketId === socket.id && room.infos.users.length > 0) {
+                        room.infos.owner = room.infos.users[0];
+                        await pool.query('UPDATE `rooms_users` SET `isOwner`=true WHERE socketId = ?', room.infos.users[0].socketId);
+                    }
 
                     pool.query('UPDATE `rooms` SET `infos`= ? WHERE id = ?', [room.infos, room.id]).then(async status => {
                         if (status.affectedRows) {
-                            console.log(`${socket.id} has disconnected room ${roomId}`)
+                            await pool.query('DELETE FROM `rooms_users` WHERE socketId = ?', socket.id);
+                            console.log(`${socket.id} has disconnected room ${roomId}`);
+                            const users = await getRoomInerUserById(room.id);
+                            socket.to(roomId).emit('new-user', Array.isArray(users) ? users : [users]);
                             socket.to(roomId).emit('new-data', room);
                         }
                     })

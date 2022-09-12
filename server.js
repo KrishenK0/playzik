@@ -106,7 +106,8 @@ async function getRoomByUUID(uuid) {
 }
 
 async function getRoomInerUserById(roomId) {
-    return sanitizeRoom((await pool.query('SELECT * FROM `rooms_users` INNER JOIN users ON rooms_users.userId = users.id WHERE roomId = ?', roomId)));
+    const users = sanitizeRoom((await pool.query('SELECT * FROM `rooms_users` INNER JOIN users ON rooms_users.userId = users.id WHERE roomId = ?', roomId)));
+    return Array.isArray(users) ? users : [users];
 }
 
 function sanitizeRoom(room) {
@@ -150,6 +151,7 @@ io.on('connection', (socket) => {
                 await pool.query('INSERT INTO `rooms_users`(`roomId`,`userId`,`isOwner`,`socketId`) VALUES (?,?,?,?)', [room.id, (await getUserById(userId)).id, true, socket.id]);
                 console.log('room created\nID :', room.uuid);
                 socket.join(room.uuid);
+                socket.emit('new-user', await getRoomInerUserById(room.id));
                 callback(room.uuid);
                 console.log(`${socket.id} have join the room ${room.uuid}`)
             } else console.log('No room found');
@@ -166,8 +168,8 @@ io.on('connection', (socket) => {
                     socket.join(roomId);
                     socket.to(room.infos.owner.socketId).emit('force-update-player');
                     console.log(`${socket.id} has joined room ${roomId}`)
-                    const users = await getRoomInerUserById(room.id);
-                    io.in(roomId).emit('new-user', Array.isArray(users) ? users : [users]);
+                    
+                    io.in(roomId).emit('new-user', await getRoomInerUserById(room.id));
                     socket.to(roomId).emit('new-data', room);
                     callback(true);
                 }
@@ -200,8 +202,7 @@ io.on('connection', (socket) => {
                     pool.query(sql, [room.content, ...values]).then(async status => {
                         if (status.affectedRows) {
                             // console.log(room, 'send-data');
-                            const users = await getRoomInerUserById(room.id);
-                            io.in(to).emit('new-user', Array.isArray(users) ? users : [users]);
+                            io.in(to).emit('new-user', await getRoomInerUserById(room.id));
                             io.in(to).emit('new-data', room);
                         }
                     })
@@ -269,8 +270,7 @@ io.on('connection', (socket) => {
                         if (status.affectedRows) {
                             await pool.query('DELETE FROM `rooms_users` WHERE socketId = ?', socket.id);
                             console.log(`${socket.id} has disconnected room ${roomId}`);
-                            const users = await getRoomInerUserById(room.id);
-                            socket.to(roomId).emit('new-user', Array.isArray(users) ? users : [users]);
+                            socket.in(roomId).emit('new-user', await getRoomInerUserById(room.id));
                             socket.to(roomId).emit('new-data', room);
                         }
                     })

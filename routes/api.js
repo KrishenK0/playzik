@@ -77,7 +77,7 @@ router.get('/youtube/musicInfo/:videoID', async (req, res) => {
                 var infoPayload = JSON.parse(response.text).videoDetails;
                 infoPayload.thumbnail.thumbnails = [];
                 [...JSON.parse(response.text).videoDetails.thumbnail.thumbnails].forEach(thumbnail => {
-                    thumbnail.aspectRatio = parseFloat((thumbnail.width/thumbnail.height).toFixed(2));
+                    thumbnail.aspectRatio = parseFloat((thumbnail.width / thumbnail.height).toFixed(2));
 
                     infoPayload.thumbnail.thumbnails.push(thumbnail);
                 })
@@ -86,7 +86,8 @@ router.get('/youtube/musicInfo/:videoID', async (req, res) => {
                     url: `http://${req.get('host') + req.originalUrl.replace(/api\//, '')}`,
                     status: res.statusCode,
                     format: bestFormat,
-                    info: infoPayload
+                    info: infoPayload,
+                    playback: JSON.parse(response.text).videoDetails
                 });
             }).catch(error => {
                 res.status(error.status || error.code).json(error);
@@ -286,15 +287,31 @@ router.get('/youtube/next/:videoID', async (req, res) => {
     } else res.sendStatus(400);
 })
 
-function reqNext(googleId, videoID) {
+router.get('/youtube/nextSong/:videoID', async (req, res) => {
+    if (!req.session.googleId) req.session.googleId = await get_visitor_id()
+    if (req.params.videoID) {
+        reqNext(req.session.googleId, req.params.videoID)
+            .then(async response => {
+                res.json(await reqNext(req.session.googleId, req.params.videoID, response.radioId));
+            })
+            .catch(error => res.status(400).json(error));
+    } else res.sendStatus(400);
+})
+
+function reqNext(googleId, videoID, radioPlaylist = undefined) {
     return new Promise((resolve, reject) => {
         if (googleId && videoID) {
+            payload = (radioPlaylist) ? { playlistId: radioPlaylist } : { 'videoId': videoID };
+
             return request.post(`https://music.youtube.com/youtubei/v1/next?alt=json&key=AIzaSyC9XL3ZjWddXya6X74dJoCTL-WEYFDNX30`)
                 .set(ytheader)
                 .set({ 'X-Goog-Visitor-Id': googleId })
-                .send({ 'videoId': videoID, tunerSettingValue: "AUTOMIX_SETTING_NORMAL", 'context': { 'client': { 'clientName': 'WEB_REMIX', 'clientVersion': '0.1', 'hl': 'en', 'visitorData': googleId }, 'user': {} } })
+                .send({ ...payload, tunerSettingValue: "AUTOMIX_SETTING_NORMAL", 'context': { 'client': { 'clientName': 'WEB_REMIX', 'clientVersion': '0.1', 'hl': 'en', 'visitorData': googleId }, 'user': {} } })
                 .then(async response => {
-                    resolve(await sanitizeNext(JSON.parse(response.text)));
+                    if (!radioPlaylist)
+                        resolve(await sanitizeNext(JSON.parse(response.text)));
+                    else
+                        resolve(await sanitizeNextSong(JSON.parse(response.text)));
                 }).catch(error => {
                     reject(error);
                 })
@@ -306,8 +323,12 @@ function sanitizeNext(datas) {
     return new Promise((resolve, reject) => {
         try {
             if (datas.contents) {
-                tabs = [];
+                tabs = [], radioId = undefined;
                 [...datas.contents.singleColumnMusicWatchNextResultsRenderer.tabbedRenderer.watchNextTabbedResultsRenderer.tabs].forEach(tab => {
+                    try {
+                        if (tab.tabRenderer.content)
+                            radioId = tab.tabRenderer.content.musicQueueRenderer.content.playlistPanelRenderer.contents[1].automixPreviewVideoRenderer.content.automixPlaylistVideoRenderer.navigationEndpoint.watchPlaylistEndpoint.playlistId;
+                    } catch (error) { console.log(error) }
                     if (tab.tabRenderer.endpoint) {
                         tabs.push({
                             title: tab.tabRenderer.title,
@@ -316,7 +337,34 @@ function sanitizeNext(datas) {
                     }
                 })
 
-                resolve({ code: 200, 'content': tabs });
+                resolve({ code: 200, 'content': tabs, 'radioId': radioId });
+
+            } else reject({ code: 200, message: 'No next :(' /*, 'searchSuggestions': null */ });
+        } catch (error) {
+            reject({ code: 500, error: { msg: `Error while parsing (${error})`, content: datas } });
+        }
+    })
+}
+
+function sanitizeNextSong(datas) {
+    return new Promise((resolve, reject) => {
+        try {
+            if (datas.contents) {
+                tabs = [], radioId = undefined;
+                [...datas.contents.singleColumnMusicWatchNextResultsRenderer.tabbedRenderer.watchNextTabbedResultsRenderer.tabs[0].tabRenderer.content.musicQueueRenderer.content.playlistPanelRenderer.contents].forEach(info => {
+                    const song = info.playlistPanelVideoRenderer;
+                    tabs.push({
+                        title: song.title.runs[0].text,
+                        author: song.shortBylineText.runs[0].text,
+                        fullInfo: song.longBylineText.runs.map(x => x.text),
+                        thumbnail: song.thumbnail,
+                        videoId: song.videoId,
+                        playlistId: song.navigationEndpoint.watchEndpoint.playlistId,
+                        index: song.navigationEndpoint.watchEndpoint.index,
+                    })
+                })
+
+                resolve({ code: 200, 'content': tabs, 'radioId': radioId });
 
             } else reject({ code: 200, message: 'No next :(' /*, 'searchSuggestions': null */ });
         } catch (error) {

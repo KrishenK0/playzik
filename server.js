@@ -151,7 +151,8 @@ io.on('connection', (socket) => {
                 await pool.query('INSERT INTO `rooms_users`(`roomId`,`userId`,`isOwner`,`socketId`) VALUES (?,?,?,?)', [room.id, (await getUserById(userId)).id, true, socket.id]);
                 console.log('room created\nID :', room.uuid);
                 socket.join(room.uuid);
-                socket.emit('new-user', await getRoomInerUserById(room.id));
+                const users = await getRoomInerUserById(room.id);
+                socket.emit('new-user', users);
                 callback(room.uuid);
                 console.log(`${socket.id} have join the room ${room.uuid}`)
             } else console.log('No room found');
@@ -166,11 +167,11 @@ io.on('connection', (socket) => {
                 if (status.affectedRows) {
                     await pool.query('INSERT INTO `rooms_users`(`roomId`,`userId`,`socketId`) VALUES (?,?,?)', [room.id, (await getUserById(userId)).id, socket.id]);
                     socket.join(roomId);
-                    socket.to(room.infos.owner.socketId).emit('force-update-player');
                     console.log(`${socket.id} has joined room ${roomId}`)
-                    
-                    io.in(roomId).emit('new-user', await getRoomInerUserById(room.id));
-                    socket.to(roomId).emit('new-data', room);
+                    const users = await getRoomInerUserById(room.id);
+                    io.in(roomId).emit('new-user', users);
+                    io.in(roomId).emit('new-data', room);
+                    socket.to(room.infos.owner.socketId).emit('force-update-player');
                     callback(true);
                 }
             })

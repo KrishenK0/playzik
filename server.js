@@ -25,7 +25,6 @@ const port = 8080;
 
 const mariadb = require('mariadb');
 const { randomUUID } = require('crypto');
-const { info } = require('console');
 const pool = mariadb.createPool({
     host: process.env.DB_HOST,
     user: process.env.DB_USER,
@@ -73,7 +72,7 @@ app.use(function (req, res, next) {
     let status = res.statusCode;
     let ip = req.headers['x-forwarded-for'] || ((req.socket.remoteAddress === '::1') ? '127.0.0.1' : req.socket.remoteAddress);
     let log = `[${formatted_date}] ${ip} [${req.protocol.toUpperCase()} ${method}] (${req.get('host')}): ${url} ${status}`;
-    // console.log(log);
+    console.log(log);
     next();
 });
 
@@ -199,13 +198,7 @@ io.on('connection', (socket) => {
                 await pool.query('INSERT INTO `rooms_users`(`roomId`,`userId`,`isOwner`,`socketId`) VALUES (?,?,?,?)', [room.id, (await getUserById(userId)).id, true, socket.id]);
                 console.log('room created\nID :', room.uuid);
                 socket.join(room.uuid);
-<<<<<<< HEAD
-                const users = await getRoomInerUserById(room.id);
-                socket.emit('new-user', users);
-                callback(room.uuid);
-=======
                 socket.emit('new-user', await getRoomInerUserById(room.id));
->>>>>>> d5c08b1bd64932ff09568ed8b67786c8a603d00e
                 console.log(`${socket.id} have join the room ${room.uuid}`)
                 callback(room.uuid);
             } else console.log('No room found');
@@ -214,7 +207,7 @@ io.on('connection', (socket) => {
 
     socket.on('join-room', async (userId, roomId, callback) => {
         let room = await getRoomByUUID(roomId)
-        if (room) {
+        if (room && !Array.from(socket.rooms).includes(roomId)) {
             if (room.infos.status && room.infos.status == 'inactive') { // Join an inactive room
                 const s = { id: userId, socketId: socket.id };
                 room.infos = {};
@@ -226,16 +219,9 @@ io.on('connection', (socket) => {
                     await pool.query('INSERT INTO `rooms_users`(`roomId`,`userId`,`socketId`) VALUES (?,?,?)', [room.id, (await getUserById(userId)).id, socket.id]);
                     socket.join(roomId);
                     console.log(`${socket.id} has joined room ${roomId}`)
-<<<<<<< HEAD
-                    const users = await getRoomInerUserById(room.id);
-                    io.in(roomId).emit('new-user', users);
-                    io.in(roomId).emit('new-data', room);
-                    socket.to(room.infos.owner.socketId).emit('force-update-player');
-=======
 
                     io.in(roomId).emit('new-data', room);
                     io.in(roomId).emit('new-user', await getRoomInerUserById(room.id));
->>>>>>> d5c08b1bd64932ff09568ed8b67786c8a603d00e
                     callback(true);
                 }
             })

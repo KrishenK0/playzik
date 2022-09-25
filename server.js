@@ -113,8 +113,23 @@ async function getRoomInerUserById(roomId) {
 }
 
 function addSongToRoom(room, content, socket) {
+    if (room.content) {
+        const songIndex = room.content.items.findIndex(x => x.trackInfo.videoId == content.trackId);
+        if (songIndex != -1) {
+            room.content.items[songIndex].temp = undefined;
+            room.content.items[songIndex].played = undefined;
+            room.content.items[songIndex].vote = [socket.id];
+
+            if (room.content.items.find(x => x.temp))
+                room.content.items = room.content.items.filter(x => !x.temp || x.trackInfo.videoId == room.player.currentId);
+
+
+            return pool.query('UPDATE `rooms` SET `content`= ? WHERE id = ?', [room.content, room.id]);
+        }
+    }
+
     return request.get(`http://localhost:${port}/api/youtube/musicInfo/${content.trackId}`).then(async response => {
-        var sql, values, valid = true;
+        var sql, values;
         if (!room.content) {
             room.content = { items: [] };
             await request.get(`http://localhost:${port}/api/youtube/nextSong/${content.trackId}`).then(songs => {
@@ -134,9 +149,7 @@ function addSongToRoom(room, content, socket) {
             sql = 'UPDATE `rooms` SET `content`= ?, `player`= ? WHERE id = ?';
             values = [room.player, room.id];
         } else {
-            if (content.trackId == room.player.currentId) valid = false;
-
-            if (valid && room.content.items.find(x => x.temp))
+            if (room.content.items.find(x => x.temp))
                 room.content.items = room.content.items.filter(x => !x.temp || x.trackInfo.videoId == room.player.currentId);
 
 
@@ -151,10 +164,11 @@ function addSongToRoom(room, content, socket) {
             temp: content.temp,
         }
 
-        if (valid) room.content.items[0].temp ? room.content.items.unshift(payload) : room.content.items.push(payload);
+        room.content.items[0].temp ? room.content.items.unshift(payload) : room.content.items.push(payload);
 
         return pool.query(sql, [room.content, ...values]);
     })
+
 }
 
 function sanitizeRoom(room) {
@@ -219,9 +233,9 @@ io.on('connection', (socket) => {
                     await pool.query('INSERT INTO `rooms_users`(`roomId`,`userId`,`socketId`) VALUES (?,?,?)', [room.id, (await getUserById(userId)).id, socket.id]);
                     socket.join(roomId);
                     console.log(`${socket.id} has joined room ${roomId}`)
-
                     io.in(roomId).emit('new-data', room);
                     io.in(roomId).emit('new-user', await getRoomInerUserById(room.id));
+                    socket.to(room.infos.owner.socketId).emit('force-update-player');
                     callback(true);
                 }
             })
@@ -291,6 +305,7 @@ io.on('connection', (socket) => {
             room.player = { currentId: nextTrackId };
             room.content.items[currentIndex].played = true;
             room.content.items[currentIndex].temp = undefined;
+            room.content.items.filter(x => x.vote.length == 0);
             pool.query('UPDATE `rooms` SET `content`=?, `player`= ? WHERE id = ?', [room.content, room.player, room.id]).then(async status => {
                 if (status.affectedRows) {
                     io.in(to).emit('new-data', room);

@@ -3,10 +3,14 @@ const express = require('express');
 const path = require('path');
 const index = require('./routes/index');
 const api = require('./routes/api');
+const utils = require('./utils');
 const cors = require('cors');
 const cookieParser = require("cookie-parser");
 const sessions = require('express-session');
 const request = require('superagent');
+const winston = require('winston');
+const expressWinston = require('express-winston');
+
 
 const app = express();
 // DEBUG: set a ssl certificat (https)
@@ -25,6 +29,7 @@ const port = 8080;
 
 const mariadb = require('mariadb');
 const { randomUUID } = require('crypto');
+const { assuredworkloads } = require('googleapis/build/src/apis/assuredworkloads');
 const pool = mariadb.createPool({
     host: process.env.DB_HOST,
     user: process.env.DB_USER,
@@ -53,28 +58,36 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.use(function (req, res, next) {
-    let current_datetime = new Date();
-    let formatted_date =
-        current_datetime.getFullYear() +
-        "-" +
-        (current_datetime.getMonth() + 1) +
-        "-" +
-        current_datetime.getDate() +
-        " " +
-        current_datetime.getHours() +
-        ":" +
-        current_datetime.getMinutes() +
-        ":" +
-        current_datetime.getSeconds();
-    let method = req.method;
-    let url = req.originalUrl;
-    let status = res.statusCode;
-    let ip = req.headers['x-forwarded-for'] || ((req.socket.remoteAddress === '::1') ? '127.0.0.1' : req.socket.remoteAddress);
-    let log = `[${formatted_date}] ${ip} [${req.protocol.toUpperCase()} ${method}] (${req.get('host')}): ${url} ${status}`;
-    console.log(log);
-    next();
-});
+app.use(expressWinston.errorLogger({
+    transports: [
+        new winston.transports.Console()
+    ],
+    format: winston.format.combine(
+        // Add the message timestamp with the preferred format
+        winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss:ms' }),
+        // Tell Winston that the logs must be colored
+        winston.format.colorize({ all: true }),
+        // Define the format of the message showing the timestamp, the level and the message
+        winston.format.printf(
+            (info) => `${info.timestamp} ${info.level}: ${info.message}`,
+        ),
+
+    )
+}));
+app.use(expressWinston.logger({
+    transports: [
+        new winston.transports.Console()
+    ],
+    format: winston.format.combine(
+        winston.format.simple(),
+        winston.format.timestamp(),
+        winston.format.colorize()
+    ),
+    meta: false,
+    msg: "HTTP {{res.statusCode}} {{req.method}} {{res.responseTime}}ms {{req.url}}",
+    colorize: true,
+}));
+
 
 
 
@@ -90,9 +103,11 @@ app.use(sessions({
 // Websocket
 async function createUser(userId, infos) {
     if (!(await pool.query('SELECT * FROM users WHERE googleId = ?', userId)).length) {
+        if (!infos) return new Promise((reject) => reject({ error: 'No infos found' }));
         infos.authentication = undefined;
-        return await pool.query('INSERT INTO `users`(`googleId`, `infos`) VALUES (?, ?)', [infos.id, infos]);
+        await pool.query('INSERT INTO `users`(`googleId`, `infos`, `visitorId`) VALUES (?, ?, ?)', [infos.id, infos, await utils.get_visitor_id()]);
     }
+    return (await pool.query('SELECT visitorId FROM users WHERE googleId = ?', userId))[0];
 }
 
 async function getUserById(userId) {
@@ -128,23 +143,25 @@ function addSongToRoom(room, content, socket) {
         }
     }
 
-    return request.get(`http://localhost:${port}/api/youtube/musicInfo/${content.trackId}`).then(async response => {
+
+    return utils.reqSong(content.visitorId, content.trackId).then(async response => {
         var sql, values;
         if (!room.content) {
             room.content = { items: [] };
-            await request.get(`http://localhost:${port}/api/youtube/nextSong/${content.trackId}`).then(songs => {
-                const data = JSON.parse(songs.text);
-                sql = 'UPDATE `rooms` SET `content`= ? WHERE id = ?';
-                data.content.forEach(song => {
-                    room.content.items.push({
-                        trackInfo: song,
-                        requester: 'NAIKU',
-                        vote: ['NAIKU'],
-                        temp: true,
-                    });
+            await utils.reqNext(content.visitorId, content.trackId).then(async radio => {
+                await utils.reqNext(content.visitorId, content.trackId, radio.radioId).then(data => {
+                    sql = 'UPDATE `rooms` SET `content`= ? WHERE id = ?';
+                    data.content.forEach(song => {
+                        room.content.items.push({
+                            trackInfo: song,
+                            requester: 'NAIKU',
+                            vote: ['NAIKU'],
+                            temp: true,
+                        });
 
+                    })
                 })
-            })
+            });
             room.player = { currentId: content.trackId };
             sql = 'UPDATE `rooms` SET `content`= ?, `player`= ? WHERE id = ?';
             values = [room.player, room.id];
@@ -152,13 +169,12 @@ function addSongToRoom(room, content, socket) {
             if (room.content.items.find(x => x.temp))
                 room.content.items = room.content.items.filter(x => !x.temp || x.trackInfo.videoId == room.player.currentId);
 
-
             sql = 'UPDATE `rooms` SET `content`= ? WHERE id = ?';
             values = [room.id];
         }
 
         const payload = {
-            trackInfo: JSON.parse(response.text).info,
+            trackInfo: response.info,
             requester: content.requester,
             vote: [socket.id],
             temp: content.temp,
@@ -190,8 +206,8 @@ io.on('connection', (socket) => {
     console.log('[+] Connection ', socket.id);
     socket.emit('reset-room');
 
-    socket.on('update-user', async (infos, userId) => {
-        createUser(userId, infos);
+    socket.on('update-user', async (infos, userId, callback) => {
+        callback(await createUser(userId, infos));
     })
 
     socket.on('ping-room', async _ => {

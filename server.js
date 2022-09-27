@@ -31,19 +31,20 @@ const mariadb = require('mariadb');
 const { randomUUID } = require('crypto');
 const { assuredworkloads } = require('googleapis/build/src/apis/assuredworkloads');
 const pool = mariadb.createPool({
-    host: process.env.DB_HOST,
-    user: process.env.DB_USER,
-    password: process.env.DB_PWD,
+    host: process.env.DB_HOST || '127.0.0.1',
+    user: process.env.DB_USER || 'root',
+    password: process.env.DB_PWD || '',
+    port: 3307,
     database: 'playzik',
-    connectionLimit: 2
+    connectionLimit: 2,
 });
 
 pool.getConnection((err, connection) => {
+    console.log(err, connection);
     if (err) console.log(`[ MariaDB ] Connection ERROR (${err.text})`)
     if (connection) connection.release();
     return;
 }).then(async () => {
-    console.log(`[ MariaDB ] Connection SUCCESSFULLY`)
     await pool.query('DELETE FROM `rooms_users`');
     console.log(`[ MariaDB ] Previous active rooms has been reset`);
 });

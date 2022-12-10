@@ -6,11 +6,21 @@ const utils = require('../utils');
 
 router.all('/*', (req, res, next) => {
     if (!req.headers['x-goog-visitor-id']) {
-        res.sendStatus(400);
-        return;
+        req.headers['x-goog-visitor-id'] = utils.get_visitor_id();
+        // res.sendStatus(400);
+        // return;
     }
     next();
 });
+
+router.get('/utils/img2base64', (req, res) => {
+    if (req.query.url) {
+        utils.reqImg2Base64(req.query.url)
+            .then(async response => {
+                res.json(response);
+            }).catch(error => res.status(400).json(error));
+    } else res.sendStatus(400);
+})
 
 router.get('/musicInfo/:id', (req, res) => {
     if (req.params.id && ytdl.validateID(req.params.id)) {

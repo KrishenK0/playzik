@@ -88,6 +88,7 @@ function reqSong(googleId, videoId) {
                 var infoPayload = JSON.parse(response.text).videoDetails;
                 infoPayload.thumbnail.thumbnails = [];
                 [...JSON.parse(response.text).videoDetails.thumbnail.thumbnails].forEach(thumbnail => {
+                    // thumbnail.url = thumbnail.url.replace(/lh3.googleusercontent.com/, 'yt3.ggpht.com');
                     thumbnail.aspectRatio = parseFloat((thumbnail.width / thumbnail.height).toFixed(2));
 
                     infoPayload.thumbnail.thumbnails.push(thumbnail);
@@ -455,9 +456,25 @@ function sanitizeBrowse(datas) {
     })
 }
 
+function reqImg2Base64(url) {
+    return new Promise((resolve, reject) => {
+        request.get(url).end(function (err, res) {
+            try {
+                resolve({ content: "data:image/png;base64," + Buffer.from(res.body).toString('base64') });
+            } catch (error) {
+                resolve({error: error});
+            }
+        });
+    })
+}
+
+
 module.exports = {
     get_visitor_id,
     getURLVideoID,
+
+    //utils
+    reqImg2Base64,
 
     // Request
     reqBrowse,
@@ -468,7 +485,7 @@ module.exports = {
     reqLyrics,
     reqRelated,
     reqNext,
-    
+
     // Sanitize
     sanitizeResearchSuggestion,
     sanitizeSearch,

@@ -1,3 +1,4 @@
+const { content } = require('googleapis/build/src/apis/content');
 const request = require('superagent');
 const ytdl = require('ytdl-core');
 
@@ -139,7 +140,8 @@ function reqLyrics(googleId, browseId) {
             .set({ 'X-Goog-Visitor-Id': googleId })
             .send({ 'browseId': browseId, 'context': { 'client': { 'clientName': 'WEB_REMIX', 'clientVersion': '0.1', 'hl': 'en' }, 'user': {} } })
             .then(async response => {
-                resolve(await sanitizeLyrics(JSON.parse(response.text)));
+                resolve(JSON.parse(response.text));
+                // resolve(await sanitizeLyrics(JSON.parse(response.text)));
             }).catch(error => {
                 reject(error);
             })
@@ -180,6 +182,34 @@ function reqNext(googleId, videoID, radioPlaylist = undefined) {
     })
 }
 
+function reqPlaylist(googleId, browseId) {
+    return new Promise((resolve, reject) => {
+        request.post(`https://music.youtube.com/youtubei/v1/browse?alt=json&key=AIzaSyC9XL3ZjWddXya6X74dJoCTL-WEYFDNX30`)
+            .set(ytheader)
+            .set({ 'X-Goog-Visitor-Id': googleId })
+            .send({ 'browseId': browseId, 'context': { 'client': { 'clientName': 'WEB_REMIX', 'clientVersion': '0.1', 'hl': 'en' }, 'user': {} } })
+            .then(async response => {
+                resolve(await sanitizePlaylist(JSON.parse(response.text)));
+            }).catch(error => {
+                reject(error);
+            })
+    });
+}
+
+function reqAlbum(googleId, browseId) {
+    return new Promise((resolve, reject) => {
+        request.post(`https://music.youtube.com/youtubei/v1/browse?alt=json&key=AIzaSyC9XL3ZjWddXya6X74dJoCTL-WEYFDNX30`)
+            .set(ytheader)
+            .set({ 'X-Goog-Visitor-Id': googleId })
+            .send({ 'browseId': browseId, 'context': { 'client': { 'clientName': 'WEB_REMIX', 'clientVersion': '0.1', 'hl': 'en' }, 'user': {} } })
+            .then(async response => {
+                resolve(await sanitizeAlbum(JSON.parse(response.text)));
+            }).catch(error => {
+                reject(error);
+            })
+    });
+}
+
 
 /**
  * Sanitize
@@ -209,6 +239,134 @@ function sanitizeResearchSuggestion(datas) {
         }
     })
 }
+
+function sanitizeNavigationEndPoint(data) {
+    if (data == undefined) return;
+    data = data.watchEndpoint || data.browseEndpoint || data;
+    if (data.clickTrackingParams) data.clickTrackingParams = undefined;
+    if (data.loggingContext) data.loggingContext = undefined;
+    if (data.watchEndpointMusicSupportedConfigs) data.watchEndpointMusicSupportedConfigs = undefined;
+    if (data.params) data.params = undefined;
+    if (data.browseEndpointContextSupportedConfigs) {
+        data.browseContext = data.browseEndpointContextSupportedConfigs.browseEndpointContextMusicConfig.pageType;
+        data.browseEndpointContextSupportedConfigs = undefined;
+    }
+    return data;
+}
+
+function sanitizeLabel(labels) {
+    output = [];
+    for (let label of labels.runs) {
+        label.navigationEndpoint = sanitizeNavigationEndPoint(label.navigationEndpoint);
+        output.push(label);
+    }
+    return output;
+}
+
+function sanitizePlaylist(datas) {
+    return new Promise((resolve, reject) => {
+        try {
+            let headerSection = datas.header.musicDetailHeaderRenderer;
+            let description;
+            if(headerSection.description) description = headerSection.description.runs[0].text;
+            header = {
+                title: headerSection.title.runs[0],
+                subtitle: headerSection.subtitle.runs,
+                subsubtitle: headerSection.secondSubtitle.runs,
+                thumbnail: headerSection.thumbnail.croppedSquareThumbnailRenderer.thumbnail.thumbnails,
+                description: description,
+            }
+
+            let output = {
+                header,
+                content: []
+            };
+
+            const contents = datas.contents.singleColumnBrowseResultsRenderer.tabs[0].tabRenderer.content.sectionListRenderer.contents[0].musicPlaylistShelfRenderer.contents;
+            contents.forEach(data => {
+                data = data.musicResponsiveListItemRenderer;
+
+                let labels = [];
+                data.flexColumns.forEach(element => {
+                    let runs = []
+                    if (element.musicResponsiveListItemFlexColumnRenderer.text.runs) {
+                        for (let label of element.musicResponsiveListItemFlexColumnRenderer.text.runs) {
+                            if (label.navigationEndpoint) label.navigationEndpoint = sanitizeNavigationEndPoint(label.navigationEndpoint);
+                            runs.push(label);
+                        }
+                        labels.push(runs);
+                    }
+                });
+
+                let music = {
+                    id: sanitizeNavigationEndPoint(data.overlay.musicItemThumbnailOverlayRenderer.content.musicPlayButtonRenderer.playNavigationEndpoint),
+                    thumbnail: data.thumbnail.musicThumbnailRenderer.thumbnail.thumbnails,
+                    labels: labels,
+                };
+
+                output.content.push(music);
+            });
+            // resolve({ code: 200, 'items': output, 'continuation': continuation });
+            resolve({ code: 200, 'items': output });
+        } catch (error) {
+            reject({ code: 500, error: { msg: `Error while parsing (${error})`, content: datas } });
+        }
+    })
+}
+
+function sanitizeAlbum(datas) {
+    return new Promise((resolve, reject) => {
+        try {
+            let headerSection = datas.header.musicDetailHeaderRenderer;
+            let headerBadge;
+            if (headerSection.subtitleBadges)
+                headerBadge = headerSection.subtitleBadges[0].musicInlineBadgeRenderer.icon;
+
+            let header = {
+                title: headerSection.title.runs[0],
+                subtitle: sanitizeLabel(headerSection.subtitle),
+                subsubtitle: headerSection.secondSubtitle.runs,
+                thumbnail: headerSection.thumbnail.croppedSquareThumbnailRenderer.thumbnail.thumbnails,
+                badges: headerBadge,
+            }
+
+            let output = {
+                header,
+                content: []
+            };
+
+            const contents = datas.contents.singleColumnBrowseResultsRenderer.tabs[0].tabRenderer.content.sectionListRenderer.contents[0].musicShelfRenderer.contents;
+            contents.forEach(data => {
+                data = data.musicResponsiveListItemRenderer;
+
+                let labels = [];
+                data.flexColumns.forEach(element => {
+                    if (element.musicResponsiveListItemFlexColumnRenderer.text.runs) {
+                        labels.push(sanitizeLabel(element.musicResponsiveListItemFlexColumnRenderer.text));
+                    } else
+                        labels.push({ text: '' })
+                });
+                let badge;
+                if (data.badges) badge = data.badges[0].musicInlineBadgeRenderer.icon.iconType;
+
+                let music = {
+                    id: sanitizeNavigationEndPoint(data.overlay.musicItemThumbnailOverlayRenderer.content.musicPlayButtonRenderer.playNavigationEndpoint),
+                    index: data.index.runs[0].text,
+                    labels: labels,
+                    badge: badge,
+                };
+
+                output.content.push(music);
+            });
+            // resolve({ code: 200, 'items': output, 'continuation': continuation });
+            resolve({ code: 200, 'items': output });
+        } catch (error) {
+            reject({ code: 500, error: { msg: `Error while parsing (${error})`, content: datas } });
+        }
+    })
+}
+
+
 
 function sanitizeSearch(datas) {
     var content = [];
@@ -462,7 +620,7 @@ function reqImg2Base64(url) {
             try {
                 resolve({ content: "data:image/png;base64," + Buffer.from(res.body).toString('base64') });
             } catch (error) {
-                resolve({error: error});
+                resolve({ error: error });
             }
         });
     })
@@ -485,6 +643,8 @@ module.exports = {
     reqLyrics,
     reqRelated,
     reqNext,
+    reqPlaylist,
+    reqAlbum,
 
     // Sanitize
     sanitizeResearchSuggestion,

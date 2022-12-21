@@ -4,9 +4,9 @@ let router = express.Router();
 const utils = require('../utils');
 
 
-router.all('/*', (req, res, next) => {
+router.all('/*', async (req, res, next) => {
     if (!req.headers['x-goog-visitor-id']) {
-        req.headers['x-goog-visitor-id'] = utils.get_visitor_id();
+        req.headers['x-goog-visitor-id'] = await utils.get_visitor_id();
         // res.sendStatus(400);
         // return;
     }
@@ -70,6 +70,23 @@ router.get('/youtube/lyrics/:videoID', (req, res) => {
                 .then(content => res.json(content))
                 .catch(error => res.status(400).json(error))
         }).catch(error => res.status(400).json(error));
+    } else res.sendStatus(400);
+})
+
+router.get('/youtube/playlist/:videoID', (req, res) => {
+    if (req.params.videoID) {
+        utils.reqPlaylist(req.headers['x-goog-visitor-id'], req.params.videoID)
+            .then(content => res.json(content))
+            .catch(error => res.status(400).json(error))
+    } else res.sendStatus(400);
+
+})
+
+router.get('/youtube/album/:videoID', (req, res) => {
+    if (req.params.videoID) {
+        utils.reqAlbum(req.headers['x-goog-visitor-id'], req.params.videoID)
+            .then(content => res.json(content))
+            .catch(error => res.status(400).json(error))
     } else res.sendStatus(400);
 
 })

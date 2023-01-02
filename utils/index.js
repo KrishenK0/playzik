@@ -140,8 +140,7 @@ function reqLyrics(googleId, browseId) {
             .set({ 'X-Goog-Visitor-Id': googleId })
             .send({ 'browseId': browseId, 'context': { 'client': { 'clientName': 'WEB_REMIX', 'clientVersion': '0.1', 'hl': 'en' }, 'user': {} } })
             .then(async response => {
-                resolve(JSON.parse(response.text));
-                // resolve(await sanitizeLyrics(JSON.parse(response.text)));
+                resolve(await sanitizeLyrics(JSON.parse(response.text)));
             }).catch(error => {
                 reject(error);
             })
@@ -243,12 +242,17 @@ function sanitizeResearchSuggestion(datas) {
 function sanitizeNavigationEndPoint(data) {
     if (data == undefined) return;
     data = data.watchEndpoint || data.browseEndpoint || data;
+    data.browseId = data.videoId;
+    data.videoId = undefined;
     if (data.clickTrackingParams) data.clickTrackingParams = undefined;
     if (data.loggingContext) data.loggingContext = undefined;
-    if (data.watchEndpointMusicSupportedConfigs) data.watchEndpointMusicSupportedConfigs = undefined;
+    if (data.watchEndpointMusicSupportedConfigs) {
+        data.context = data.watchEndpointMusicSupportedConfigs.watchEndpointMusicConfig.musicVideoType;
+        data.watchEndpointMusicSupportedConfigs = undefined;
+    }
     if (data.params) data.params = undefined;
     if (data.browseEndpointContextSupportedConfigs) {
-        data.browseContext = data.browseEndpointContextSupportedConfigs.browseEndpointContextMusicConfig.pageType;
+        data.context = data.browseEndpointContextSupportedConfigs.browseEndpointContextMusicConfig.pageType;
         data.browseEndpointContextSupportedConfigs = undefined;
     }
     return data;
@@ -366,8 +370,6 @@ function sanitizeAlbum(datas) {
     })
 }
 
-
-
 function sanitizeSearch(datas) {
     var content = [];
     var SECTIONS = datas.contents.tabbedSearchResultsRenderer.tabs[0].tabRenderer.content.sectionListRenderer.contents;
@@ -482,15 +484,14 @@ function sanitizeLyrics(datas) {
     return new Promise((resolve, reject) => {
         try {
             if (datas.contents.sectionListRenderer) {
-                content = {};
+                let content = {};
                 [...datas.contents.sectionListRenderer.contents].forEach(lyric => {
                     content.lyrics = lyric.musicDescriptionShelfRenderer.description.runs[0].text;
                     content.footer = lyric.musicDescriptionShelfRenderer.footer.runs[0].text;
                 })
 
                 resolve({ code: 200, 'content': content });
-
-            } else reject({
+            } else resolve({
                 code: 200,
                 'content': {
                     'lyrics': datas.contents.messageRenderer.text.runs[0].text,
@@ -597,6 +598,7 @@ function sanitizeBrowse(datas) {
                     } else if (k === 'musicDescriptionShelfRenderer') {
                         section = {
                             sectionTitle: element[k].header.runs[0].text,
+                            sectionContext: 'musicDescriptionShelfRenderer',
                             sectionContents: element[k].description.runs[0].text,
                         }
                     }

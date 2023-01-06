@@ -369,7 +369,6 @@ io.on('connection', (socket) => {
         }
     });
 
-
     socket.on('disconnect', _ => {
         console.log('[-] Disconnection ', socket.id);
     })

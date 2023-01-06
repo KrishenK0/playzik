@@ -242,7 +242,7 @@ function sanitizeResearchSuggestion(datas) {
 function sanitizeNavigationEndPoint(data) {
     if (data == undefined) return;
     data = data.watchEndpoint || data.browseEndpoint || data;
-    data.browseId = data.videoId;
+    data.browseId = data.videoId || data.browseId;
     data.videoId = undefined;
     if (data.clickTrackingParams) data.clickTrackingParams = undefined;
     if (data.loggingContext) data.loggingContext = undefined;

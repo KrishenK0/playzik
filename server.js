@@ -25,7 +25,7 @@ const server = require('http').createServer(app);
 const socket = require('socket.io');
 const io = socket(server, { cors: { origin: '*', } });
 
-const port = 8080;
+const port = process.env.PORT || 8080;
 
 const mariadb = require('mariadb');
 const { randomUUID } = require('crypto');

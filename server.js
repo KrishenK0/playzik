@@ -27,27 +27,26 @@ const io = socket(server, { cors: { origin: '*', } });
 
 const port = process.env.PORT || 8080;
 
-const mariadb = require('mariadb');
-const { randomUUID } = require('crypto');
-const { assuredworkloads } = require('googleapis/build/src/apis/assuredworkloads');
-const pool = mariadb.createPool({
-    host: process.env.DB_HOST || '127.0.0.1',
-    user: process.env.DB_USER || 'root',
-    password: process.env.DB_PWD || '',
-    port: 3307,
-    database: 'playzik',
-    connectionLimit: 2,
-});
+// const mariadb = require('mariadb');
+// const { randomUUID } = require('crypto');
+// const pool = mariadb.createPool({
+//     host: process.env.DB_HOST || '127.0.0.1',
+//     user: process.env.DB_USER || 'root',
+//     password: process.env.DB_PWD || '',
+//     port: 3307,
+//     database: 'playzik',
+//     connectionLimit: 2,
+// });
 
-pool.getConnection((err, connection) => {
-    console.log(err, connection);
-    if (err) console.log(`[ MariaDB ] Connection ERROR (${err.text})`)
-    if (connection) connection.release();
-    return;
-}).then(async () => {
-    await pool.query('DELETE FROM `rooms_users`');
-    console.log(`[ MariaDB ] Previous active rooms has been reset`);
-});
+// pool.getConnection((err, connection) => {
+//     console.log(err, connection);
+//     if (err) console.log(`[ MariaDB ] Connection ERROR (${err.text})`)
+//     if (connection) connection.release();
+//     return;
+// }).then(async () => {
+//     await pool.query('DELETE FROM `rooms_users`');
+//     console.log(`[ MariaDB ] Previous active rooms has been reset`);
+// });
 
 // view engine
 app.set('views', path.join(__dirname, 'views'));

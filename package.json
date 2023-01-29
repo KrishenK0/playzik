@@ -2,11 +2,8 @@
   "name": "playzik",
   "productName": "playzik",
   "version": "1.0.0",
-  "description": "Participating playlist electron app",
+  "description": "Playzik API",
   "main": "index.js",
-  "engines": {
-    "node": "16.x"
-  },
   "scripts": {
     "start": "node index.js"
   },
@@ -16,33 +13,6 @@
     "email": "fox2581kriskenk@gmail.com"
   },
   "license": "MIT",
-  "config": {
-    "forge": {
-      "packagerConfig": {},
-      "makers": [
-        {
-          "name": "@electron-forge/maker-squirrel",
-          "config": {
-            "name": "playzik"
-          }
-        },
-        {
-          "name": "@electron-forge/maker-zip",
-          "platforms": [
-            "darwin"
-          ]
-        },
-        {
-          "name": "@electron-forge/maker-deb",
-          "config": {}
-        },
-        {
-          "name": "@electron-forge/maker-rpm",
-          "config": {}
-        }
-      ]
-    }
-  },
   "dependencies": {
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",

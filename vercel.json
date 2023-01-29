@@ -1,7 +1,7 @@
 {
   "functions": {
     "api/browse.js": {
-      "memory": 3008,
+      "memory": 1024,
       "maxDuration": 10
     },
     "api/search.js": {

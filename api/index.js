@@ -3,7 +3,6 @@ let express = require('express');
 let router = express.Router();
 const utils = require('../utils');
 
-
 router.all('/*', async (req, res, next) => {
     if (!req.headers['x-goog-visitor-id']) {
         req.headers['x-goog-visitor-id'] = await utils.get_visitor_id();

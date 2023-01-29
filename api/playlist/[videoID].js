@@ -1,4 +1,4 @@
-const { reqPlaylist } = require('../../../lib/utils');
+const { reqPlaylist } = require('../../lib/utils');
 
 export default function handler(req, res) {
     if (req.query.videoID) {

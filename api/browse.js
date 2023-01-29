@@ -1,4 +1,4 @@
-const { reqBrowse } = require('../../lib/utils');
+const { reqBrowse } = require('../lib/utils');
 
 export default async function handler(req, res) {
     try {

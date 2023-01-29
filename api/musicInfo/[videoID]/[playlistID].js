@@ -1,4 +1,4 @@
-const { reqSongInPlaylist } = require('../../../../lib/utils');
+const { reqSongInPlaylist } = require('../../../lib/utils');
 const ytdl = require('ytdl-core');
 
 export default function handler(req, res) {

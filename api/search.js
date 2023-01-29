@@ -1,4 +1,4 @@
-const { reqSearch } = require('../../lib/utils');
+const { reqSearch } = require('../lib/utils');
 
 export default function handler(req, res) {
     if (req.query.q) {

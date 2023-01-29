@@ -1,4 +1,4 @@
-const { reqNext, reqLyrics } = require('../../../lib/utils');
+const { reqNext, reqLyrics } = require('../../lib/utils');
 
 export default function handler(req, res) {
     if (req.query.videoID) {

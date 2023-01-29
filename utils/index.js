@@ -1,4 +1,3 @@
-const { content } = require('googleapis/build/src/apis/content');
 const request = require('superagent');
 const ytdl = require('ytdl-core');
 

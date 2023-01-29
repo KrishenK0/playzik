@@ -8,15 +8,7 @@
     "node": "16.x"
   },
   "scripts": {
-    "start": "node server.js",
-    "package": "electron-forge package",
-    "make": "electron-forge make",
-    "publish": "electron-forge publish",
-    "lint": "echo \"No linting configured\"",
-    "start-server": "nodemon server.js",
-    "dev": "concurrently --kill-others \"npm run start:tailwind\" \"npm start\"",
-    "start:tailwind": "npx postcss ./views/css/tailwind.css -o ./public/css/style.css --watch",
-    "production:tailwind": "cross-env NODE_ENV=production postcss ./views/css/tailwind.css -o ./public/css/style.css"
+    "start": "node index.js"
   },
   "keywords": [],
   "author": {
@@ -54,22 +46,13 @@
   "dependencies": {
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
-    "cross-env": "^7.0.3",
     "dotenv": "^16.0.1",
-    "ejs": "^3.1.8",
     "express": "^4.18.1",
     "express-session": "^1.17.3",
     "express-winston": "^4.2.0",
-    "googleapis": "^101.0.0",
-    "https": "^1.0.0",
-    "mariadb": "^3.0.1",
-    "nodemon": "^2.0.20",
-    "socket.io": "^4.5.1",
-    "stream": "^0.0.2",
-    "superagent": "^7.1.6",
-    "tmp": "^0.2.1",
-    "winston": "^3.8.2",
-    "ws": "^8.7.0"
+    "socket.io": "^4.5.4",
+    "superagent": "^8.0.9",
+    "winston": "^3.8.2"
   },
   "devDependencies": {
     "ytdl-core": "^4.11.2"

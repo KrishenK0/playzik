@@ -1,30 +1,22 @@
 {
-  "name": "playzik",
-  "productName": "playzik",
+  "name": "serverless",
   "version": "1.0.0",
-  "description": "Playzik API",
+  "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "vercel dev",
+    "deploy": "vercel deploy --prod",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [],
-  "author": {
-    "name": "KrishenK",
-    "email": "fox2581kriskenk@gmail.com"
-  },
-  "license": "MIT",
-  "dependencies": {
-    "cookie-parser": "^1.4.6",
-    "cors": "^2.8.5",
-    "dotenv": "^16.0.1",
-    "express": "^4.18.1",
-    "express-session": "^1.17.3",
-    "express-winston": "^4.2.0",
-    "socket.io": "^4.5.4",
-    "superagent": "^8.0.9",
-    "winston": "^3.8.2"
-  },
+  "author": "",
+  "license": "ISC",
   "devDependencies": {
-    "ytdl-core": "^4.11.2"
+    "vercel": "^28.13.0"
+  },
+  "dependencies": {
+    "got": "^11.8.3",
+    "next": "^13.1.6",
+    "parse": "^3.5.1",
+    "superagent": "^8.0.8"
   }
 }

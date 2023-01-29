@@ -1,0 +1,12 @@
+{
+  "functions": {
+    "api/browse.js": {
+      "memory": 3008,
+      "maxDuration": 60
+    },
+    "api/search.js": {
+      "memory": 1024,
+      "maxDuration": 30
+    }
+  }
+}

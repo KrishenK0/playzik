@@ -21,7 +21,7 @@ app.use(sessions({
 }));
 
 // Route
-app.use('/playzik', api);
+app.use('/api', api);
 
 app.get('/', (req, res) => {
     res.send('Hello World!');

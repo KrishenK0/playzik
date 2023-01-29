@@ -13,14 +13,6 @@ const expressWinston = require('express-winston');
 
 
 const app = express();
-// DEBUG: set a ssl certificat (https)
-// const fs = require('fs');
-// const options = {
-//     key: fs.readFileSync('./.extra/key.pem'),
-//     cert: fs.readFileSync('./.extra/cert.pem')
-// };
-// const server = require('https').createServer(options, app);
-const server = require('http').createServer(app);
 
 const socket = require('socket.io');
 const io = socket(server, { cors: { origin: '*', } });
@@ -410,4 +402,4 @@ app.use(function (err, req, res, next) {
 });
 
 
-server.listen(port, () => console.log(`Listening on port : ${port}`));
+app.listen(port, () => console.log(`Listening on port : ${port}`));

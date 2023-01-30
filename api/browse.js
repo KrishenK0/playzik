@@ -1,4 +1,4 @@
-const { reqBrowse, get_visitor_id } = require('../lib/utils');
+const { reqBrowse } = require('../lib/utils');
 
 export default async function handler(req, res) {
     if (req.query.continuation) {

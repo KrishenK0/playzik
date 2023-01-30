@@ -2,6 +2,7 @@ const { reqSong } = require('../../lib/utils');
 const ytdl = require('ytdl-core');
 
 export default function handler(req, res) {
+    if (req.method === 'OPTIONS') return res.status(200).end();
     if (req.params.videoID && ytdl.validateID(req.params.videoID)) {
         reqSong(req.headers['x-goog-visitor-id'], req.params.videoID)
             .then(content => res.json(content))

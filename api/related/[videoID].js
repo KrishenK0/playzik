@@ -1,6 +1,7 @@
 const { reqNext, reqRelated } = require('../../lib/utils');
 
 export default function handler(req, res) {
+    if (req.method === 'OPTIONS') return res.status(200).end();
     if (req.query.videoID) {
         reqNext(req.headers['x-goog-visitor-id'], req.query.videoID)
             .then(response => {

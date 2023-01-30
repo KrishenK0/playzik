@@ -1,6 +1,7 @@
 const { reqAlbum } = require('../../../lib/utils');
 
 export default function handler(req, res) {
+    if (req.method === 'OPTIONS') return res.status(200).end();
     if (req.query.videoID) {
         reqAlbum(req.headers['x-goog-visitor-id'], req.query.videoID)
             .then(content => res.json(content))

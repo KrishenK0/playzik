@@ -2,6 +2,7 @@ const { reqImg2Base64 } = require('../lib/utils');
 
 
 export default async function handler(req, res) {
+    if (req.method === 'OPTIONS') return res.status(200).end();
     if (req.query.url) {
         reqImg2Base64(req.query.url)
             .then(async response => {

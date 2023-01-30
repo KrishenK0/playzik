@@ -1,4 +1,4 @@
-const { reqImg2Base64 } = require('../lib/utils');
+const { reqImg2Base64 } = require('../../lib/utils');
 
 
 export default async function handler(req, res) {

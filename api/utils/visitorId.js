@@ -1,7 +1,7 @@
-const { reqBrowse } = require('../../lib/utils');
+const { reqBrowse, get_visitor_id } = require('../../lib/utils');
 
 export default function handler(req, res) {
-    reqBrowse(req.headers['x-goog-visitor-id'], req.query.continuation)
+    get_visitor_id()
         .then(browse => res.json(browse))
         .catch(error => res.status(500).json(error));
 }

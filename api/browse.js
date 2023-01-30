@@ -1,18 +1,19 @@
-const { reqBrowse } = require('../lib/utils');
+const { reqBrowse, get_visitor_id } = require('../lib/utils');
 
 export default async function handler(req, res) {
-    try {
-        reqBrowse(req.headers['x-goog-visitor-id'])
-        .then(browse => {
-            reqBrowse(req.headers['x-goog-visitor-id'], browse.continuation).then(nextBrowse => {
-                nextBrowse.items.unshift(...browse.items);
-                res.setHeader('Content-Type', 'application/json');
-                res.json(nextBrowse);
-            }).catch(error => res.status(500).json(error));
-        })
-        .catch(error => res.status(500).json(error));
-    } catch (err) {
-        console.log(err);
-        res.status(501).send("Unable to scrape.");
+    if (req.query.continuation) {
+        reqBrowse(visitorId, req.query.continuation)
+            .then(browse => res.json(browse))
+            .catch(error => res.status(500).json(error));
+    } else {
+        reqBrowse(visitorId)
+            .then(browse => {
+                reqBrowse(visitorId, browse.continuation).then(nextBrowse => {
+                    nextBrowse.items.unshift(...browse.items);
+                    res.setHeader('Content-Type', 'application/json');
+                    res.json(nextBrowse);
+                }).catch(error => res.status(500).json(error));
+            })
+            .catch(error => res.status(500).json(error));
     }
 }

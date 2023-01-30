@@ -1,4 +1,4 @@
-const { reqBrowse, get_visitor_id } = require('../../lib/utils');
+const { get_visitor_id } = require('../../lib/utils');
 
 export default function handler(req, res) {
     if (req.method === 'OPTIONS') return res.status(200).end();

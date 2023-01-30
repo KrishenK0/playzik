@@ -1,4 +1,4 @@
-const { reqAlbum } = require('../../../lib/utils');
+const { reqAlbum } = require('../../lib/utils');
 
 export default function handler(req, res) {
     if (req.method === 'OPTIONS') return res.status(200).end();

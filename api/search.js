@@ -7,7 +7,7 @@ export default function handler(req, res) {
         reqSuggestion(req.headers['x-goog-visitor-id'], req.query.suggestion ?? '')
             .then(content => res.json(content))
             .catch(error => res.status(error.code).json(error))
-    else if (req.query.q || req.query.suggestion == '')
+    else if (req.query.q || req.query.q == '')
         reqSearch(req.headers['x-goog-visitor-id'], req.query.q)
             .then(content => res.json(content))
             .catch(error => res.status(error.code).json(error))

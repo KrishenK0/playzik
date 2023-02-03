@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "vercel dev -d",
+    "start": "vercel dev",
+    "debug": "vercel dev -d",
     "deploy": "vercel deploy --prod",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -15,7 +16,6 @@
     "ytdl-core": "^4.11.2"
   },
   "dependencies": {
-    "file-type": "^18.2.0",
     "got": "^11.8.3",
     "next": "^13.1.6",
     "parse": "^3.5.1",

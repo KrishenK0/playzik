@@ -92,3 +92,5 @@ out/
 
 # Credentials
 .credentials/
+
+api/test.js

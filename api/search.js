@@ -2,7 +2,6 @@ const { reqSearch, reqSuggestion } = require('../lib/utils');
 
 export default function handler(req, res) {
     if (req.method === 'OPTIONS') return res.status(200).end();
-    console.log(req.query);
     if (req.query.suggestion || req.query.suggestion == '')
         reqSuggestion(req.headers['x-goog-visitor-id'], req.query.suggestion ?? '')
             .then(content => res.json(content))

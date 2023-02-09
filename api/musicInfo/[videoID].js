@@ -11,7 +11,3 @@ export default function handler(req, res) {
             .catch(error => res.status(error.code ?? 500).json(error))
     } else res.status(400).end("Internal Server Error");
 }
-
-export const config = {
-    runtime: 'edge', // this is a pre-requisite
-};  
